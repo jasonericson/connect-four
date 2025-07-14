@@ -1,3 +1,4 @@
+#include <cassert>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -20,60 +21,35 @@ inline uint64_t bit_set(uint64_t num, uint8_t pos)
     return num | ((uint64_t)1 << pos);
 }
 
-#ifndef NDEBUG
 uint8_t get_board_value(BoardState* state, uint8_t row, uint8_t col)
 {
-    if (row >= 6 || col >= 7)
-    {
-        printf("Invalid row (%d) or col (%d)\n", row, col);
-        return 0;
-    }
+    assert(row < 6 && col < 7);
 
     uint8_t bit_pos = (row * 7) + col;
-    bool player1_value = bit_check(state->player1, bit_pos);
-    bool player2_value = bit_check(state->player2, bit_pos);
-    if (player1_value && player2_value)
+
+    assert(!(bit_check(state->player1, bit_pos) && bit_check(state->player2, bit_pos)));
+
+    return bit_check(state->player1, bit_pos) ? 1 : (bit_check(state->player2, bit_pos) ? 2 : 0);
+}
+
+void set_board_value(BoardState* state, uint8_t row, uint8_t col, uint8_t value)
+{
+    assert(row < 6 && col < 7);
+    assert(value == 1 || value == 2);
+
+    uint8_t bit_pos = (row * 7) + col;
+
+    if (value == 1)
     {
-        printf("Player 1 and Player 2 cannot occupy the same space. (row: %d, col: %d)\n", row, col);
-        return 0;
+        uint64_t player1 = bit_set(state->player1, bit_pos);
+        *state = { .player1 = player1, .player2 = state->player2 };
     }
     else
     {
-        return player1_value ? 1 : (player2_value ? 2 : 0);
+        uint64_t player2 = bit_set(state->player2, bit_pos);
+        *state = { .player1 = state->player1, .player2 = player2 };
     }
 }
-#endif
-
-#ifndef NDEBUG
-void set_board_value(BoardState* state, uint8_t row, uint8_t col, uint8_t value)
-{
-    if (row >= 6 || col >= 7)
-    {
-        printf("Invalid row (%d) or col (%d)\n", row, col);
-        return;
-    }
-
-    uint8_t bit_pos = (row * 7) + col;
-    switch (value)
-    {
-        case 1:
-        {
-            uint64_t player1 = bit_set(state->player1, bit_pos);
-            *state = { .player1 = player1, .player2 = state->player2 };
-            return;
-        }
-        case 2:
-        {
-            uint64_t player2 = bit_set(state->player2, bit_pos);
-            *state = { .player1 = state->player1, .player2 = player2 };
-            return;
-        }
-        default:
-            printf("Invalid board value to set (value: %d, row: %d, col: %d)\n", value, row, col);
-            return;
-    }
-}
-#endif
 
 bool check_for_win(BoardState* state)
 {
