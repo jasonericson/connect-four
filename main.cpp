@@ -1,10 +1,11 @@
 #include <cassert>
 #include <math.h>
+#include "SDL/include/SDL3/SDL.h"
+#include "SDL/include/SDL3/SDL_timer.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 struct BoardState
 {
@@ -232,13 +233,12 @@ uint64_t total_moves_evaluated = 0;
 uint64_t wins_found = 0;
 uint64_t dead_ends_found = 0;
 uint8_t min_depth = 50;
-time_t time_of_last_print;
+uint64_t time_of_last_print;
 
 int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, BoardState* state, bool *move_possible, uint8_t depth)
 {
-    time_t time_current;
-    time(&time_current);
-    time_t seconds_since_last_print = time_current - time_of_last_print;
+    uint64_t time_current = SDL_GetTicks();
+    uint64_t seconds_since_last_print = (time_current - time_of_last_print) / 1000;
     if (seconds_since_last_print >= 1)
     {
         time_of_last_print = time_current;
@@ -276,6 +276,8 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 
 int main()
 {
+    SDL_Init(0);
+
     BoardState state = { .player1 = 0, .player2 = 0 };
     uint8_t player = 1;
 
@@ -327,13 +329,11 @@ int main()
 
         // Evaluate moves
         bool move_possible;
-        time_t eval_start_time;
-        time(&eval_start_time);
+        uint64_t eval_start_time = SDL_GetTicks();
         time_of_last_print = eval_start_time;
         int64_t move_score = get_move_score(player, player, 0, &state, &move_possible, 1);
-        time_t eval_end_time;
-        time(&eval_end_time);
-        printf("Time to finish evaluation: %ld\n", eval_end_time - eval_start_time);
+        uint64_t eval_end_time = SDL_GetTicks();
+        printf("Time to finish evaluation: %ld\n", (eval_end_time - eval_start_time) / 1000);
         printf("Column 0 move score: %ld\n", move_score);
 
         // // Wait for move
