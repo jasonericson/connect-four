@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 struct BoardState
 {
@@ -11,9 +12,9 @@ struct BoardState
     uint64_t player2;
 };
 
-inline bool bit_check(uint64_t num, uint8_t pos)
+inline uint8_t bit_check(uint64_t num, uint8_t pos)
 {
-    return (num & ((uint64_t)1 << pos)) != 0;
+    return !!(num & ((uint64_t)1 << pos));
 }
 
 inline uint64_t bit_set(uint64_t num, uint8_t pos)
@@ -27,9 +28,11 @@ uint8_t get_board_value(BoardState* state, uint8_t row, uint8_t col)
 
     uint8_t bit_pos = (row * 7) + col;
 
-    assert(!(bit_check(state->player1, bit_pos) && bit_check(state->player2, bit_pos)));
+    uint8_t result = bit_check(state->player1, bit_pos) + bit_check(state->player2, bit_pos) * 2;
+    assert(result >= 0 && result < 3);
 
-    return bit_check(state->player1, bit_pos) ? 1 : (bit_check(state->player2, bit_pos) ? 2 : 0);
+    // return bit_check(state->player1, bit_pos) ? 1 : (bit_check(state->player2, bit_pos) ? 2 : 0);
+    return bit_check(state->player1, bit_pos) + bit_check(state->player2, bit_pos) * 2;
 }
 
 void set_board_value(BoardState* state, uint8_t row, uint8_t col, uint8_t value)
@@ -206,7 +209,6 @@ bool check_for_win(BoardState* state)
 
 bool make_move(uint8_t player, uint8_t column, BoardState* state)
 {
-    // memcpy(state_new, state_old, sizeof(uint8_t) * 6 * 7);
 
     if (column < 0 || column >= 7)
         return false;
@@ -226,38 +228,51 @@ bool make_move(uint8_t player, uint8_t column, BoardState* state)
     return false;
 }
 
-// uint64_t wins_found = 0;
-// uint64_t dead_ends_found = 0;
+uint64_t total_moves_evaluated = 0;
+uint64_t wins_found = 0;
+uint64_t dead_ends_found = 0;
+uint8_t min_depth = 50;
+time_t time_of_last_print;
 
-// int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, uint8_t (*state)[6][7], bool *move_possible, uint32_t depth)
-// {
-//     uint8_t state_new[6][7];
-//     memcpy(&state_new, state, sizeof(uint8_t) * 6 * 7);
-//     *move_possible = make_move(player_this_turn, col, &state_new);
-//     if (*move_possible == false)
-//     {
-//         ++dead_ends_found;
-//         printf("Wins found: %d, dead-ends found: %d\r", wins_found, dead_ends_found);
-//         return 0;
-//     }
+int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, BoardState* state, bool *move_possible, uint8_t depth)
+{
+    time_t time_current;
+    time(&time_current);
+    time_t seconds_since_last_print = time_current - time_of_last_print;
+    if (seconds_since_last_print >= 1)
+    {
+        time_of_last_print = time_current;
+        printf("Total moves: %lu (%%%f), wins found: %lu, dead-ends found: %lu, depth: %d\n", total_moves_evaluated, 100.0f * (float)total_moves_evaluated / (float)4531985219092, wins_found, dead_ends_found, min_depth);
+    }
 
-//     if (check_for_win(&state_new))
-//     {
-//         ++wins_found;
-//         printf("Wins found: %d, dead-ends found: %d\r", wins_found, dead_ends_found);
-//         return player == player_this_turn ? 1 : -1;
-//     }
+    BoardState state_new = *state;
+    *move_possible = make_move(player_this_turn, col, &state_new);
+    if (*move_possible == false)
+    {
+        ++dead_ends_found;
+        return 0;
+    }
 
-//     int32_t total_score = 0;
-//     player_this_turn = player_this_turn % 2 + 1;
-//     for (uint8_t col = 0; col < 7; ++col)
-//     {
-//         bool temp_move_possible;
-//         total_score += get_move_score(player, player_this_turn, col, &state_new, &temp_move_possible, depth + 1);
-//     }
+    ++total_moves_evaluated;
 
-//     return total_score;
-// }
+    if (check_for_win(&state_new))
+    {
+        ++wins_found;
+        return 0;
+    }
+
+    int32_t total_score = 0;
+    player_this_turn = player_this_turn % 2 + 1;
+    for (uint8_t col = 0; col < 7; ++col)
+    {
+        bool temp_move_possible;
+        total_score += get_move_score(player, player_this_turn, col, &state_new, &temp_move_possible, depth + 1);
+    }
+
+    min_depth = depth < min_depth ? depth : min_depth;
+
+    return total_score;
+}
 
 int main()
 {
@@ -310,24 +325,30 @@ int main()
             break;
         }
 
-        // // Evaluate moves
-        // bool move_possible;
-        // int32_t move_score = get_move_score(player, player, 0, &state, &move_possible, 1);
-        // printf("Column 0 move score: %d\n", move_score);
+        // Evaluate moves
+        bool move_possible;
+        time_t eval_start_time;
+        time(&eval_start_time);
+        time_of_last_print = eval_start_time;
+        int64_t move_score = get_move_score(player, player, 0, &state, &move_possible, 1);
+        time_t eval_end_time;
+        time(&eval_end_time);
+        printf("Time to finish evaluation: %ld\n", eval_end_time - eval_start_time);
+        printf("Column 0 move score: %ld\n", move_score);
 
-        // Wait for move
-        printf("Player %d, what's your move?\n", player);
+        // // Wait for move
+        // printf("Player %d, what's your move?\n", player);
 
-        int input;
-        scanf("%d", &input);
+        // int input;
+        // scanf("%d", &input);
 
-        bool success = make_move(player, input - 1, &state);
-        if (success)
-        {
-            player = player % 2 + 1;
-        }
+        // bool success = make_move(player, input - 1, &state);
+        // if (success)
+        // {
+        //     player = player % 2 + 1;
+        // }
 
-        printf("\033[2J");
+        // printf("\033[2J");
     }
 
     return 0;
