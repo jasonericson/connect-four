@@ -7,6 +7,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define REGISTER_PROFILE(label) \
+    uint64_t label##_time_spent = 0; \
+    uint64_t label##_count = 0;
+#define START_PROFILE(label) \
+    ++label##_count; \
+    uint64_t label##_time_start = SDL_GetPerformanceCounter();
+#define END_PROFILE(label) \
+    label##_time_spent += (SDL_GetPerformanceCounter() - label##_time_start);
+#define PRINT_PROFILE_INFO(label) print_profile_info(#label, label##_count, label##_time_spent)
+
 struct BoardState
 {
     uint64_t player1;
@@ -210,18 +220,19 @@ bool check_for_win(BoardState* state)
 
 bool make_move(uint8_t player, uint8_t column, BoardState* state)
 {
-
-    if (column < 0 || column >= 7)
-        return false;
+    assert(column >= 0 && column < 7);
 
     if (get_board_value(state, 5, column) != 0)
+    {
         return false;
+    }
 
     for (uint8_t row = 0; row < 6; ++row)
     {
         if (get_board_value(state, row, column) == 0)
         {
             set_board_value(state, row, column, player);
+
             return true;
         }
     }
@@ -235,31 +246,68 @@ uint64_t dead_ends_found = 0;
 uint8_t min_depth = 50;
 uint64_t time_of_last_print;
 
+REGISTER_PROFILE(get_move_score)
+REGISTER_PROFILE(make_move)
+REGISTER_PROFILE(check_for_win)
+
+void print_profile_info(const char* label, uint64_t count, uint64_t time_spent)
+{
+    double_t total_time_seconds = (double)time_spent / SDL_GetPerformanceFrequency();
+    double_t total_time_percentage = 100.0 * total_time_seconds / ((double)get_move_score_time_spent / SDL_GetPerformanceFrequency());
+    double_t avg_time_nanoseconds = ((double)time_spent / count) / (SDL_GetPerformanceFrequency() / 1000000000);
+
+    printf("-- %s: count = %lu, total time = %f seconds (%f%%), avg time = %f nanoseconds\n",
+        label, count, total_time_seconds, total_time_percentage, avg_time_nanoseconds);
+}
+
 int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, BoardState* state, bool *move_possible, uint8_t depth)
 {
-    uint64_t time_current = SDL_GetTicks();
-    uint64_t seconds_since_last_print = (time_current - time_of_last_print) / 1000;
-    if (seconds_since_last_print >= 1)
+    uint64_t time_current = SDL_GetPerformanceCounter();
+    double_t seconds_since_last_print = (double_t)(time_current - time_of_last_print) / (double_t)SDL_GetPerformanceFrequency();
+    if (seconds_since_last_print >= 1.0)
     {
         time_of_last_print = time_current;
         printf("Total moves: %lu (%%%f), wins found: %lu, dead-ends found: %lu, depth: %d\n", total_moves_evaluated, 100.0f * (float)total_moves_evaluated / (float)4531985219092, wins_found, dead_ends_found, min_depth);
+
+        double_t get_move_score_total_time = (double)get_move_score_time_spent / SDL_GetPerformanceFrequency();
+        double_t get_move_score_avg_time = ((double)get_move_score_time_spent / get_move_score_count) / (SDL_GetPerformanceFrequency() / 1000000000);
+
+        printf("- get_move_score(): count = %lu, total time = %f seconds, avg time = %f nanoseconds\n", get_move_score_count, get_move_score_total_time, get_move_score_avg_time);
+
+        PRINT_PROFILE_INFO(check_for_win);
+        PRINT_PROFILE_INFO(make_move);
     }
 
+    START_PROFILE(get_move_score)
+
     BoardState state_new = *state;
+    START_PROFILE(make_move)
     *move_possible = make_move(player_this_turn, col, &state_new);
+    END_PROFILE(make_move)
     if (*move_possible == false)
     {
         ++dead_ends_found;
+
+        END_PROFILE(get_move_score)
+
         return 0;
     }
 
     ++total_moves_evaluated;
 
-    if (check_for_win(&state_new))
+    START_PROFILE(check_for_win)
+    bool result = check_for_win(&state_new);
+    END_PROFILE(check_for_win)
+    if (result)
     {
         ++wins_found;
+
+        END_PROFILE(get_move_score)
+
         return 0;
     }
+
+    END_PROFILE(get_move_score)
 
     int32_t total_score = 0;
     player_this_turn = player_this_turn % 2 + 1;
@@ -317,23 +365,23 @@ int main()
         }
         printf("‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n");
 
-        // Check board for wins
-        bool win = check_for_win(&state);
+        // // Check board for wins
+        // bool win = check_for_win(&state);
 
-        // Game Over
-        if (win)
-        {
-            printf("Player %d wins!\n", player % 2 + 1);
-            break;
-        }
+        // // Game Over
+        // if (win)
+        // {
+        //     printf("Player %d wins!\n", player % 2 + 1);
+        //     break;
+        // }
 
         // Evaluate moves
         bool move_possible;
-        uint64_t eval_start_time = SDL_GetTicks();
+        uint64_t eval_start_time = SDL_GetPerformanceCounter();
         time_of_last_print = eval_start_time;
         int64_t move_score = get_move_score(player, player, 0, &state, &move_possible, 1);
-        uint64_t eval_end_time = SDL_GetTicks();
-        printf("Time to finish evaluation: %ld\n", (eval_end_time - eval_start_time) / 1000);
+        // uint64_t eval_end_time = SDL_GetPerformanceCounter();
+        // printf("Time to finish evaluation: %ld\n", (eval_end_time - eval_start_time) / 1000);
         printf("Column 0 move score: %ld\n", move_score);
 
         // // Wait for move
