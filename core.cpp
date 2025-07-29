@@ -5,6 +5,17 @@
 #include "SDL.h"
 #include <stdio.h>
 
+void init_board(BoardState state)
+{
+    for (uint8_t row = 0; row < 6; ++row)
+    {
+        for (uint8_t col = 0; col < 7; ++col)
+        {
+            state[row][col] = 0;
+        }
+    }
+}
+
 inline uint8_t bit_check(uint64_t num, uint8_t pos)
 {
     return !!(num & ((uint64_t)1 << pos));
@@ -15,43 +26,30 @@ inline uint64_t bit_set(uint64_t num, uint8_t pos)
     return num | ((uint64_t)1 << pos);
 }
 
-uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
+inline uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
 {
     assert(row < 6 && col < 7);
 
-    return state[col] < (1 << (row + 1)) ? 0 : ((state[col] & (1 << row)) >> row) + 1;
-
-    // uint8_t bit_pos = (row * 7) + col;
-
-    // uint8_t result = bit_check(state->player1, bit_pos) + bit_check(state->player2, bit_pos) * 2;
-    // assert(result >= 0 && result < 3);s
-
-    // // return bit_check(state->player1, bit_pos) ? 1 : (bit_check(state->player2, bit_pos) ? 2 : 0);
-    // return bit_check(state->player1, bit_pos) + bit_check(state->player2, bit_pos) * 2;
+    return state[row][col];
 }
 
 bool make_move(uint8_t player, uint8_t column, BoardState state)
 {
     assert(column >= 0 && column < 7);
 
-    uint8_t probe = 0b01000000;
-
-    if (state[column] >= probe)
+    if (get_board_value(state, 5, column) != 0)
         return false;
 
-    while (state[column] < probe)
+    for (uint8_t row = 0; row < 6; ++row)
     {
-        probe >>= 1;
+        if (get_board_value(state, row, column) == 0)
+        {
+            state[row][column] = player;
+            return true;
+        }
     }
 
-    if (player == 1)
-    {
-        state[column] &= ~(probe);
-    }
-
-    state[column] |= (probe << 1);
-
-    return true;
+    return false;
 }
 
 bool check_for_win(BoardState state)
@@ -59,19 +57,35 @@ bool check_for_win(BoardState state)
     // Vertical
     for (uint8_t col = 0; col < 7; ++col)
     {
-        switch (state[col])
+        uint8_t center = get_board_value(state, 2, col);
+        if (center == 0 || center != get_board_value(state, 3, col))
+            continue;
+
+        uint8_t count = 2;
+        for (int8_t row = 1; row >= 0; --row)
         {
-            case 0b00010000:
-            case 0b00011111:
-            case 0b00100001:
-            case 0b00111110:
-            case 0b01000010:
-            case 0b01000011:
-            case 0b01111100:
-            case 0b01111101:
-                return true;
-            default:
+            if (get_board_value(state, row, col) != center)
                 break;
+
+            ++count;
+        }
+
+        if (count == 4)
+        {
+            return true;
+        }
+
+        for (uint8_t row = 4; row < 6; ++row)
+        {
+            if (get_board_value(state, row, col) != center)
+                break;
+
+            ++count;
+
+            if (count == 4)
+            {
+                return true;
+            }
         }
     }
 

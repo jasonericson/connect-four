@@ -33,10 +33,7 @@ int main()
     BoardState* states = (BoardState*)malloc(sizeof(BoardState) * NUM_GAMES);
     for (uint64_t i = 0; i < NUM_GAMES; ++i)
     {
-        for (uint8_t j = 0; j < 7; ++j)
-        {
-            states[i][j] = 1;
-        }
+        init_board(states[i]);
     }
 
     uint64_t make_move_start_time = SDL_GetPerformanceCounter();

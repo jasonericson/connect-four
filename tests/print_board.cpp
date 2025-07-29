@@ -5,7 +5,8 @@
 
 int main()
 {
-    BoardState state = { 1, 1, 1, 1, 1, 1, 1 };
+    BoardState state;
+    init_board(state);
 
     make_move(1, 5, state);
     make_move(2, 0, state);
