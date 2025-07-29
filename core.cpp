@@ -305,7 +305,8 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 // @TODO: lol this function still only gets the move score for one move, gotta get back to that
 int32_t get_move_score_full()
 {
-    BoardState state = { 1, 1, 1, 1, 1, 1, 1 };
+    BoardState state;
+    init_board(state);
     bool move_possible;
     get_move_score_start_time = SDL_GetTicks();
     time_of_last_print = get_move_score_start_time;
