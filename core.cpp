@@ -33,7 +33,7 @@ inline uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
     return state[row][col];
 }
 
-bool make_move(uint8_t player, uint8_t column, BoardState state)
+int8_t make_move(uint8_t player, uint8_t column, BoardState state)
 {
     assert(column >= 0 && column < 7);
 
@@ -45,6 +45,141 @@ bool make_move(uint8_t player, uint8_t column, BoardState state)
         if (get_board_value(state, row, column) == 0)
         {
             state[row][column] = player;
+            return row;
+        }
+    }
+
+    return -1;
+}
+
+bool check_for_win(BoardState state, uint8_t last_move_row, uint8_t last_move_col)
+{
+    uint8_t player = get_board_value(state, last_move_row, last_move_col);
+
+    // Vertical
+    uint8_t center = get_board_value(state, 2, last_move_col);
+    if (center == player && center == get_board_value(state, 3, last_move_col))
+    {
+        uint8_t count = 2;
+        for (int8_t row = 1; row >= 0; --row)
+        {
+            if (get_board_value(state, row, last_move_col) != center)
+                break;
+
+            ++count;
+        }
+
+        if (count == 4)
+        {
+            return true;
+        }
+
+        for (uint8_t row = 4; row < 6; ++row)
+        {
+            if (get_board_value(state, row, last_move_col) != center)
+                break;
+
+            ++count;
+
+            if (count == 4)
+            {
+                return true;
+            }
+        }
+    }
+
+    // Horizontal
+    center = get_board_value(state, last_move_row, 3);
+    if (center == player)
+    {
+        uint8_t count = 1;
+        for (int8_t col = 2; col >= 0; --col)
+        {
+            if (get_board_value(state, last_move_row, col) != center)
+                break;
+
+            ++count;
+        }
+
+        if (count == 4)
+        {
+            return true;
+        }
+
+        for (uint8_t col = 4; col < 7; ++col)
+        {
+            if (get_board_value(state, last_move_row, col) != center)
+                break;
+
+            ++count;
+
+            if (count == 4)
+            {
+                return true;
+            }
+        }
+    }
+
+    // Diagonal (bottom-left to top-right)
+    uint8_t count = 1;
+    int8_t diag_row = last_move_row - 1;
+    int8_t diag_col = last_move_col - 1;
+    for (diag_row, diag_col; diag_row >= 0 && diag_col >= 0; --diag_row, --diag_col)
+    {
+        if (get_board_value(state, diag_row, diag_col) != player)
+            break;
+
+        ++count;
+
+        if (count >= 4)
+        {
+            return true;
+        }
+    }
+
+    diag_row = last_move_row + 1;
+    diag_col = last_move_col + 1;
+    for (diag_row, diag_col; diag_row < 6 && diag_col < 7; ++diag_row, ++diag_col)
+    {
+        if (get_board_value(state, diag_row, diag_col) != player)
+            break;
+
+        ++count;
+
+        if (count >= 4)
+        {
+            return true;
+        }
+    }
+
+    // Diagonal (top-left to bottom-right)
+    count = 1;
+    diag_row = last_move_row + 1;
+    diag_col = last_move_col - 1;
+    for (diag_row, diag_col; diag_row < 6 && diag_col >= 0; ++diag_row, --diag_col)
+    {
+        if (get_board_value(state, diag_row, diag_col) != player)
+            break;
+
+        ++count;
+
+        if (count >= 4)
+        {
+            return true;
+        }
+    }
+
+    diag_row = last_move_row - 1;
+    diag_col = last_move_col + 1;
+    for (diag_row, diag_col; diag_row >= 0 && diag_col < 7; --diag_row, ++diag_col)
+    {
+        if (get_board_value(state, diag_row, diag_col) != player)
+            break;
+
+        ++count;
+
+        if (count >= 4)
+        {
             return true;
         }
     }
@@ -271,7 +406,7 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 
     BoardState state_new;
     memcpy(state_new, state, sizeof(BoardState));
-    *move_possible = make_move(player_this_turn, col, state_new);
+    *move_possible = make_move(player_this_turn, col, state_new) >= 0;
     if (*move_possible == false)
     {
         ++dead_ends_found;

@@ -1,5 +1,7 @@
 #include "../core.h"
 
+#include <stdio.h>
+
 struct Game
 {
     uint8_t num_moves;
@@ -26,14 +28,17 @@ int main()
         init_board(state);
         uint8_t player = 1;
 
+        int8_t row;
         for (uint8_t j = 0; j < games[i].num_moves; ++j)
         {
-            make_move(player, games[i].moves[j], state);
+            row = make_move(player, games[i].moves[j], state);
             player = 3 - player;
         }
 
-        if (check_for_win(state))
+        if (row >= 0 && check_for_win(state, row, games[i].moves[games[i].num_moves - 1]))
         {
+            printf("Failed on game %d\n", i);
+            print_board(state);
             return 1;
         }
     }
