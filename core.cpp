@@ -13,7 +13,7 @@ void init_board(BoardState state)
     }
 }
 
-uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
+inline uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
 {
     assert(row < 6 && col < 7);
 
