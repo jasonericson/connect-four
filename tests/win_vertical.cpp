@@ -22,7 +22,8 @@ int main()
 {
     for (uint8_t i = 0; i < 10; ++i)
     {
-        BoardState state = { 1, 1, 1, 1, 1, 1, 1 };
+        BoardState state;
+        init_board(state);
         uint8_t player = 1;
 
         for (uint8_t j = 0; j < games[i].num_moves; ++j)

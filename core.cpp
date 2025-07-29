@@ -5,14 +5,12 @@
 #include "SDL.h"
 #include <stdio.h>
 
-inline uint8_t bit_check(uint64_t num, uint8_t pos)
+void init_board(BoardState state)
 {
-    return !!(num & ((uint64_t)1 << pos));
-}
-
-inline uint64_t bit_set(uint64_t num, uint8_t pos)
-{
-    return num | ((uint64_t)1 << pos);
+    for (uint8_t col = 0; col < 7; ++col)
+    {
+        state[col] = 1;
+    }
 }
 
 uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
@@ -20,14 +18,6 @@ uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
     assert(row < 6 && col < 7);
 
     return state[col] < (1 << (row + 1)) ? 0 : ((state[col] & (1 << row)) >> row) + 1;
-
-    // uint8_t bit_pos = (row * 7) + col;
-
-    // uint8_t result = bit_check(state->player1, bit_pos) + bit_check(state->player2, bit_pos) * 2;
-    // assert(result >= 0 && result < 3);s
-
-    // // return bit_check(state->player1, bit_pos) ? 1 : (bit_check(state->player2, bit_pos) ? 2 : 0);
-    // return bit_check(state->player1, bit_pos) + bit_check(state->player2, bit_pos) * 2;
 }
 
 bool make_move(uint8_t player, uint8_t column, BoardState state)
@@ -340,55 +330,4 @@ void print_board(BoardState state)
     sprint_board(state, board);
     printf("%s", board);
     free(board);
-}
-
-bool test_print_board()
-{
-    BoardState state = { 1, 1, 1, 1, 1, 1, 1 };
-
-    make_move(1, 5, state);
-    make_move(2, 0, state);
-    make_move(1, 6, state);
-    make_move(2, 6, state);
-    make_move(1, 0, state);
-    make_move(2, 3, state);
-    make_move(1, 4, state);
-    make_move(2, 1, state);
-    make_move(1, 3, state);
-    make_move(2, 4, state);
-    make_move(1, 5, state);
-    make_move(2, 5, state);
-    make_move(1, 4, state);
-    make_move(2, 5, state);
-    make_move(1, 3, state);
-    make_move(2, 0, state);
-    make_move(1, 1, state);
-    make_move(2, 1, state);
-    
-    const char* correct_board =
-        "_1_2_3_4_5_6_7_\n"
-        "| | | | | | | |\n"
-        "| | | | | | | |\n"
-        "| | | | | |O| |\n"
-        "|O|O| |X|X|O| |\n"
-        "|X|X| |X|O|X|O|\n"
-        "|O|O| |O|X|X|X|\n"
-        "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n";
-
-    char* test_board = (char*)malloc(sizeof(char) * 256);
-    sprint_board(state, test_board);
-
-    bool result = strcmp(correct_board, test_board) == 0;
-    free(test_board);
-    return result;
-}
-
-bool test_print_friendly_time()
-{
-    char* test_string = (char*)malloc(sizeof(char) * 1024);
-    sprint_friendly_time(3412441, test_string);
-
-    bool result = strcmp("39 days, 11 hours, 54 minutes, 1 second", test_string) == 0;
-    free(test_string);
-    return result;
 }
