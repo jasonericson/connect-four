@@ -11,3 +11,21 @@ target_include_directories(ConnectFour PRIVATE SDL/include/SDL3)
 add_executable(ConnectFour-Profile profile.cpp core.cpp)
 target_link_libraries(ConnectFour-Profile PRIVATE SDL3::SDL3)
 target_include_directories(ConnectFour-Profile PRIVATE SDL/include/SDL3)
+
+enable_testing()
+
+set(TEST_LIST
+    print_board
+    win_horizontal
+    win_vertical
+    win_diagonal_bl-tr
+    win_diagonal_tl-br
+    win_none
+)
+
+foreach(TEST_NAME ${TEST_LIST})
+    add_executable(${TEST_NAME} tests/${TEST_NAME}.cpp core.cpp)
+    target_link_libraries(${TEST_NAME} PRIVATE SDL3::SDL3)
+    target_include_directories(${TEST_NAME} PRIVATE SDL/include/SDL3)
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+endforeach()
