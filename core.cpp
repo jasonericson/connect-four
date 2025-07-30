@@ -5,13 +5,14 @@
 #include "SDL.h"
 #include <stdio.h>
 
-void init_board(BoardState state)
+void init_board(BoardState* state)
 {
     for (uint8_t row = 0; row < 6; ++row)
     {
         for (uint8_t col = 0; col < 7; ++col)
         {
-            state[row][col] = 0;
+            state->player1 = 0;
+            state->player2 = 0;
         }
     }
 }
@@ -26,14 +27,37 @@ inline uint64_t bit_set(uint64_t num, uint8_t pos)
     return num | ((uint64_t)1 << pos);
 }
 
-inline uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
+inline uint8_t get_board_value(BoardState* state, uint8_t row, uint8_t col)
 {
     assert(row < 6 && col < 7);
 
-    return state[row][col];
+    uint8_t bit_pos = (row * 7) + col;
+
+    assert(!(bit_check(state->player1, bit_pos) && bit_check(state->player2, bit_pos)));
+
+    return bit_check(state->player1, bit_pos) ? 1 : (bit_check(state->player2, bit_pos) ? 2 : 0);
 }
 
-int8_t make_move(uint8_t player, uint8_t column, BoardState state)
+void set_board_value(BoardState* state, uint8_t row, uint8_t col, uint8_t value)
+{
+    assert(row < 6 && col < 7);
+    assert(value == 1 || value == 2);
+
+    uint8_t bit_pos = (row * 7) + col;
+
+    if (value == 1)
+    {
+        uint64_t player1 = bit_set(state->player1, bit_pos);
+        *state = { .player1 = player1, .player2 = state->player2 };
+    }
+    else
+    {
+        uint64_t player2 = bit_set(state->player2, bit_pos);
+        *state = { .player1 = state->player1, .player2 = player2 };
+    }
+}
+
+int8_t make_move(uint8_t player, uint8_t column, BoardState* state)
 {
     assert(column >= 0 && column < 7);
 
@@ -44,7 +68,7 @@ int8_t make_move(uint8_t player, uint8_t column, BoardState state)
     {
         if (get_board_value(state, row, column) == 0)
         {
-            state[row][column] = player;
+            set_board_value(state, row, column, player);
             return row;
         }
     }
@@ -52,7 +76,7 @@ int8_t make_move(uint8_t player, uint8_t column, BoardState state)
     return -1;
 }
 
-bool check_for_win(BoardState state, uint8_t last_move_row, uint8_t last_move_col)
+bool check_for_win(BoardState* state, uint8_t last_move_row, uint8_t last_move_col)
 {
     uint8_t player = get_board_value(state, last_move_row, last_move_col);
 
@@ -187,7 +211,7 @@ bool check_for_win(BoardState state, uint8_t last_move_row, uint8_t last_move_co
     return false;
 }
 
-bool check_for_win(BoardState state)
+bool check_for_win(BoardState* state)
 {
     // Vertical
     for (uint8_t col = 0; col < 7; ++col)
@@ -385,7 +409,7 @@ void sprint_friendly_time(double_t total_seconds, char* buffer)
     }
 }
 
-int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, BoardState state, bool *move_possible, uint8_t depth)
+int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, BoardState* state, bool *move_possible, uint8_t depth)
 {
     uint64_t time_current = SDL_GetTicks();
     if (time_current - time_of_last_print >= 1000)
@@ -405,8 +429,8 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
     }
 
     BoardState state_new;
-    memcpy(state_new, state, sizeof(BoardState));
-    int8_t row_result = make_move(player_this_turn, col, state_new);
+    memcpy(&state_new, state, sizeof(BoardState));
+    int8_t row_result = make_move(player_this_turn, col, &state_new);
     *move_possible = row_result >= 0;
     if (*move_possible == false)
     {
@@ -417,7 +441,7 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 
     ++total_moves_evaluated;
 
-    bool result = check_for_win(state_new, row_result, col);
+    bool result = check_for_win(&state_new, row_result, col);
     if (result)
     {
         ++wins_found;
@@ -430,7 +454,7 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
     for (uint8_t col = 0; col < 7; ++col)
     {
         bool temp_move_possible;
-        total_score += get_move_score(player, player_this_turn, col, state_new, &temp_move_possible, depth + 1);
+        total_score += get_move_score(player, player_this_turn, col, &state_new, &temp_move_possible, depth + 1);
     }
 
     min_depth = depth < min_depth ? depth : min_depth;
@@ -442,15 +466,15 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 int32_t get_move_score_full()
 {
     BoardState state;
-    init_board(state);
+    init_board(&state);
     bool move_possible;
     get_move_score_start_time = SDL_GetTicks();
     time_of_last_print = get_move_score_start_time;
 
-    return get_move_score(1, 1, 0, state, &move_possible, 1);
+    return get_move_score(1, 1, 0, &state, &move_possible, 1);
 }
 
-void sprint_board(BoardState state, char* buffer)
+void sprint_board(BoardState* state, char* buffer)
 {
     sprintf(buffer, "_1_2_3_4_5_6_7_\n");
     buffer += 16;
@@ -485,61 +509,10 @@ void sprint_board(BoardState state, char* buffer)
     sprintf(buffer, "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n");
 }
 
-void print_board(BoardState state)
+void print_board(BoardState* state)
 {
     char* board = (char*)malloc(sizeof(char) * 256);
     sprint_board(state, board);
     printf("%s", board);
     free(board);
-}
-
-bool test_print_board()
-{
-    BoardState state = { 1, 1, 1, 1, 1, 1, 1 };
-
-    make_move(1, 5, state);
-    make_move(2, 0, state);
-    make_move(1, 6, state);
-    make_move(2, 6, state);
-    make_move(1, 0, state);
-    make_move(2, 3, state);
-    make_move(1, 4, state);
-    make_move(2, 1, state);
-    make_move(1, 3, state);
-    make_move(2, 4, state);
-    make_move(1, 5, state);
-    make_move(2, 5, state);
-    make_move(1, 4, state);
-    make_move(2, 5, state);
-    make_move(1, 3, state);
-    make_move(2, 0, state);
-    make_move(1, 1, state);
-    make_move(2, 1, state);
-    
-    const char* correct_board =
-        "_1_2_3_4_5_6_7_\n"
-        "| | | | | | | |\n"
-        "| | | | | | | |\n"
-        "| | | | | |O| |\n"
-        "|O|O| |X|X|O| |\n"
-        "|X|X| |X|O|X|O|\n"
-        "|O|O| |O|X|X|X|\n"
-        "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n";
-
-    char* test_board = (char*)malloc(sizeof(char) * 256);
-    sprint_board(state, test_board);
-
-    bool result = strcmp(correct_board, test_board) == 0;
-    free(test_board);
-    return result;
-}
-
-bool test_print_friendly_time()
-{
-    char* test_string = (char*)malloc(sizeof(char) * 1024);
-    sprint_friendly_time(3412441, test_string);
-
-    bool result = strcmp("39 days, 11 hours, 54 minutes, 1 second", test_string) == 0;
-    free(test_string);
-    return result;
 }

@@ -6,26 +6,26 @@
 int main()
 {
     BoardState state;
-    init_board(state);
+    init_board(&state);
 
-    make_move(1, 5, state);
-    make_move(2, 0, state);
-    make_move(1, 6, state);
-    make_move(2, 6, state);
-    make_move(1, 0, state);
-    make_move(2, 3, state);
-    make_move(1, 4, state);
-    make_move(2, 1, state);
-    make_move(1, 3, state);
-    make_move(2, 4, state);
-    make_move(1, 5, state);
-    make_move(2, 5, state);
-    make_move(1, 4, state);
-    make_move(2, 5, state);
-    make_move(1, 3, state);
-    make_move(2, 0, state);
-    make_move(1, 1, state);
-    make_move(2, 1, state);
+    make_move(1, 5, &state);
+    make_move(2, 0, &state);
+    make_move(1, 6, &state);
+    make_move(2, 6, &state);
+    make_move(1, 0, &state);
+    make_move(2, 3, &state);
+    make_move(1, 4, &state);
+    make_move(2, 1, &state);
+    make_move(1, 3, &state);
+    make_move(2, 4, &state);
+    make_move(1, 5, &state);
+    make_move(2, 5, &state);
+    make_move(1, 4, &state);
+    make_move(2, 5, &state);
+    make_move(1, 3, &state);
+    make_move(2, 0, &state);
+    make_move(1, 1, &state);
+    make_move(2, 1, &state);
     
     const char* correct_board =
         "_1_2_3_4_5_6_7_\n"
@@ -38,7 +38,7 @@ int main()
         "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n";
 
     char* test_board = (char*)malloc(sizeof(char) * 256);
-    sprint_board(state, test_board);
+    sprint_board(&state, test_board);
 
     int result = strcmp(correct_board, test_board);
     free(test_board);
