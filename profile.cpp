@@ -12,6 +12,13 @@ struct Game
     uint8_t* moves;
 };
 
+struct BoardAndLastMove
+{
+    BoardState state;
+    int8_t last_move_row;
+    int8_t last_move_col;
+};
+
 int main()
 {
     const uint64_t NUM_GAMES = 10000000;
@@ -30,10 +37,10 @@ int main()
         total_num_moves += games[i].num_moves;
     }
 
-    BoardState* states = (BoardState*)malloc(sizeof(BoardState) * NUM_GAMES);
+    BoardAndLastMove* states = (BoardAndLastMove*)malloc(sizeof(BoardAndLastMove) * NUM_GAMES);
     for (uint64_t i = 0; i < NUM_GAMES; ++i)
     {
-        init_board(states[i]);
+        init_board(states[i].state);
     }
 
     uint64_t make_move_start_time = SDL_GetPerformanceCounter();
@@ -42,9 +49,11 @@ int main()
         uint8_t player = 1;
         for (uint8_t j = 0; j < games[i].num_moves; ++j)
         {
-            make_move(player, games[i].moves[j], states[i]);
+            states[i].last_move_row = make_move(player, games[i].moves[j], states[i].state);
             player = 3 - player;
         }
+
+        states[i].last_move_col = games[i].moves[games[i].num_moves - 1];
     }
     uint64_t make_move_end_time = SDL_GetPerformanceCounter();
 
@@ -57,7 +66,7 @@ int main()
     uint64_t check_for_win_start_time = SDL_GetPerformanceCounter();
     for (uint64_t i = 0; i < NUM_GAMES; ++i)
     {
-        wins[i] = check_for_win(states[i]);
+        wins[i] = check_for_win(states[i].state, states[i].last_move_row, states[i].last_move_col);
     }
     uint64_t check_for_win_end_time = SDL_GetPerformanceCounter();
 

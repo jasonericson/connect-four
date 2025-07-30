@@ -38,9 +38,9 @@ int8_t make_move(uint8_t player, uint8_t column, BoardState state)
     assert(column >= 0 && column < 7);
 
     if (get_board_value(state, 5, column) != 0)
-        return false;
+        return -1;
 
-    for (uint8_t row = 0; row < 6; ++row)
+    for (int8_t row = 0; row < 6; ++row)
     {
         if (get_board_value(state, row, column) == 0)
         {
@@ -406,7 +406,8 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 
     BoardState state_new;
     memcpy(state_new, state, sizeof(BoardState));
-    *move_possible = make_move(player_this_turn, col, state_new) >= 0;
+    int8_t row_result = make_move(player_this_turn, col, state_new);
+    *move_possible = row_result >= 0;
     if (*move_possible == false)
     {
         ++dead_ends_found;
@@ -416,7 +417,7 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 
     ++total_moves_evaluated;
 
-    bool result = check_for_win(state_new);
+    bool result = check_for_win(state_new, row_result, col);
     if (result)
     {
         ++wins_found;
