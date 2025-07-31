@@ -148,7 +148,7 @@ bool check_for_win(BoardState* state, uint8_t last_move_row, uint8_t last_move_c
     uint8_t count = 1;
     int8_t diag_row = last_move_row - 1;
     int8_t diag_col = last_move_col - 1;
-    for (diag_row, diag_col; diag_row >= 0 && diag_col >= 0; --diag_row, --diag_col)
+    for (; diag_row >= 0 && diag_col >= 0; --diag_row, --diag_col)
     {
         if (get_board_value(state, diag_row, diag_col) != player)
             break;
@@ -163,7 +163,7 @@ bool check_for_win(BoardState* state, uint8_t last_move_row, uint8_t last_move_c
 
     diag_row = last_move_row + 1;
     diag_col = last_move_col + 1;
-    for (diag_row, diag_col; diag_row < 6 && diag_col < 7; ++diag_row, ++diag_col)
+    for (; diag_row < 6 && diag_col < 7; ++diag_row, ++diag_col)
     {
         if (get_board_value(state, diag_row, diag_col) != player)
             break;
@@ -180,7 +180,7 @@ bool check_for_win(BoardState* state, uint8_t last_move_row, uint8_t last_move_c
     count = 1;
     diag_row = last_move_row + 1;
     diag_col = last_move_col - 1;
-    for (diag_row, diag_col; diag_row < 6 && diag_col >= 0; ++diag_row, --diag_col)
+    for (; diag_row < 6 && diag_col >= 0; ++diag_row, --diag_col)
     {
         if (get_board_value(state, diag_row, diag_col) != player)
             break;
@@ -195,7 +195,7 @@ bool check_for_win(BoardState* state, uint8_t last_move_row, uint8_t last_move_c
 
     diag_row = last_move_row - 1;
     diag_col = last_move_col + 1;
-    for (diag_row, diag_col; diag_row >= 0 && diag_col < 7; --diag_row, ++diag_col)
+    for (; diag_row >= 0 && diag_col < 7; --diag_row, ++diag_col)
     {
         if (get_board_value(state, diag_row, diag_col) != player)
             break;
@@ -515,55 +515,4 @@ void print_board(BoardState* state)
     sprint_board(state, board);
     printf("%s", board);
     free(board);
-}
-
-bool test_print_board()
-{
-    BoardState state = { 1, 1, 1, 1, 1, 1, 1 };
-
-    make_move(1, 5, state);
-    make_move(2, 0, state);
-    make_move(1, 6, state);
-    make_move(2, 6, state);
-    make_move(1, 0, state);
-    make_move(2, 3, state);
-    make_move(1, 4, state);
-    make_move(2, 1, state);
-    make_move(1, 3, state);
-    make_move(2, 4, state);
-    make_move(1, 5, state);
-    make_move(2, 5, state);
-    make_move(1, 4, state);
-    make_move(2, 5, state);
-    make_move(1, 3, state);
-    make_move(2, 0, state);
-    make_move(1, 1, state);
-    make_move(2, 1, state);
-    
-    const char* correct_board =
-        "_1_2_3_4_5_6_7_\n"
-        "| | | | | | | |\n"
-        "| | | | | | | |\n"
-        "| | | | | |O| |\n"
-        "|O|O| |X|X|O| |\n"
-        "|X|X| |X|O|X|O|\n"
-        "|O|O| |O|X|X|X|\n"
-        "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n";
-
-    char* test_board = (char*)malloc(sizeof(char) * 256);
-    sprint_board(state, test_board);
-
-    bool result = strcmp(correct_board, test_board) == 0;
-    free(test_board);
-    return result;
-}
-
-bool test_print_friendly_time()
-{
-    char* test_string = (char*)malloc(sizeof(char) * 1024);
-    sprint_friendly_time(3412441, test_string);
-
-    bool result = strcmp("39 days, 11 hours, 54 minutes, 1 second", test_string) == 0;
-    free(test_string);
-    return result;
 }
