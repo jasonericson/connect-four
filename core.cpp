@@ -20,18 +20,20 @@ inline uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
     return state[col] < (1 << (row + 1)) ? 0 : ((state[col] & (1 << row)) >> row) + 1;
 }
 
-bool make_move(uint8_t player, uint8_t column, BoardState state)
+int8_t make_move(uint8_t player, uint8_t column, BoardState state)
 {
     assert(column >= 0 && column < 7);
 
     uint8_t probe = 0b01000000;
 
     if (state[column] >= probe)
-        return false;
+        return -1;
 
+    int8_t row = 6;
     while (state[column] < probe)
     {
         probe >>= 1;
+        --row;
     }
 
     if (player == 1)
@@ -41,41 +43,39 @@ bool make_move(uint8_t player, uint8_t column, BoardState state)
 
     state[column] |= (probe << 1);
 
-    return true;
+    return row;
 }
 
-bool check_for_win(BoardState state)
+bool check_for_win(BoardState state, uint8_t last_move_row, uint8_t last_move_col)
 {
+    assert(last_move_row < 6 && last_move_col < 7);
+
+    uint8_t last_move_player = get_board_value(state, last_move_row, last_move_col);
+
     // Vertical
-    for (uint8_t col = 0; col < 7; ++col)
+    switch (state[last_move_col])
     {
-        switch (state[col])
-        {
-            case 0b00010000:
-            case 0b00011111:
-            case 0b00100001:
-            case 0b00111110:
-            case 0b01000010:
-            case 0b01000011:
-            case 0b01111100:
-            case 0b01111101:
-                return true;
-            default:
-                break;
-        }
+        case 0b00010000:
+        case 0b00011111:
+        case 0b00100001:
+        case 0b00111110:
+        case 0b01000010:
+        case 0b01000011:
+        case 0b01111100:
+        case 0b01111101:
+            return true;
+        default:
+            break;
     }
 
     // Horizontal
-    for (uint8_t row = 0; row < 6; ++row)
+    uint8_t center = get_board_value(state, last_move_row, 3);
+    if (center == last_move_player)
     {
-        uint8_t center = get_board_value(state, row, 3);
-        if (center == 0)
-            continue;
-
         uint8_t count = 1;
         for (int8_t col = 2; col >= 0; --col)
         {
-            if (get_board_value(state, row, col) != center)
+            if (get_board_value(state, last_move_row, col) != center)
                 break;
 
             ++count;
@@ -88,7 +88,7 @@ bool check_for_win(BoardState state)
 
         for (uint8_t col = 4; col < 7; ++col)
         {
-            if (get_board_value(state, row, col) != center)
+            if (get_board_value(state, last_move_row, col) != center)
                 break;
 
             ++count;
@@ -101,80 +101,66 @@ bool check_for_win(BoardState state)
     }
 
     // Diagonal (bottom-left to top-right)
-    for (int8_t row = 0; row < 6; ++row)
+    uint8_t count = 1;
+    int8_t diag_row = last_move_row - 1;
+    int8_t diag_col = last_move_col - 1;
+    for (; diag_row >= 0 && diag_col >= 0; --diag_row, --diag_col)
     {
-        uint8_t center = get_board_value(state, row, 3);
-        if (center == 0)
-            continue;
+        if (get_board_value(state, diag_row, diag_col) != last_move_player)
+            break;
 
-        uint8_t count = 1;
-        int8_t diag_row = row - 1;
-        int8_t diag_col = 3 - 1;
-        for (; diag_row >= 0 && diag_col >= 0; --diag_row, --diag_col)
-        {
-            if (get_board_value(state, diag_row, diag_col) != center)
-                break;
+        ++count;
 
-            ++count;
-        }
-
-        if (count == 4)
+        if (count >= 4)
         {
             return true;
         }
+    }
 
-        diag_row = row + 1;
-        diag_col = 3 + 1;
-        for (; diag_row < 6 && diag_col < 7; ++diag_row, ++diag_col)
+    diag_row = last_move_row + 1;
+    diag_col = last_move_col + 1;
+    for (; diag_row < 6 && diag_col < 7; ++diag_row, ++diag_col)
+    {
+        if (get_board_value(state, diag_row, diag_col) != last_move_player)
+            break;
+
+        ++count;
+
+        if (count >= 4)
         {
-            if (get_board_value(state, diag_row, diag_col) != center)
-                break;
-
-            ++count;
-
-            if (count == 4)
-            {
-                return true;
-            }
+            return true;
         }
     }
 
     // Diagonal (top-left to bottom-right)
-    for (int8_t row = 0; row < 6; ++row)
+    count = 1;
+    diag_row = last_move_row + 1;
+    diag_col = last_move_col - 1;
+    for (; diag_row < 6 && diag_col >= 0; ++diag_row, --diag_col)
     {
-        uint8_t center = get_board_value(state, row, 3);
-        if (center == 0)
-            continue;
+        if (get_board_value(state, diag_row, diag_col) != last_move_player)
+            break;
 
-        uint8_t count = 1;
-        int8_t diag_row = row + 1;
-        int8_t diag_col = 3 - 1;
-        for (; diag_row < 6 && diag_col >= 0; ++diag_row, --diag_col)
-        {
-            if (get_board_value(state, diag_row, diag_col) != center)
-                break;
+        ++count;
 
-            ++count;
-        }
-
-        if (count == 4)
+        if (count >= 4)
         {
             return true;
         }
+    }
 
-        diag_row = row - 1;
-        diag_col = 3 + 1;
-        for (; diag_row >= 0 && diag_col < 7; --diag_row, ++diag_col)
+    diag_row = last_move_row - 1;
+    diag_col = last_move_col + 1;
+    for (; diag_row >= 0 && diag_col < 7; --diag_row, ++diag_col)
+    {
+        if (get_board_value(state, diag_row, diag_col) != last_move_player)
+            break;
+
+        ++count;
+
+        if (count >= 4)
         {
-            if (get_board_value(state, diag_row, diag_col) != center)
-                break;
-
-            ++count;
-
-            if (count == 4)
-            {
-                return true;
-            }
+            return true;
         }
     }
 
@@ -247,7 +233,8 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 
     BoardState state_new;
     memcpy(state_new, state, sizeof(BoardState));
-    *move_possible = make_move(player_this_turn, col, state_new);
+    int8_t row = make_move(player_this_turn, col, state_new);
+    *move_possible = row >= 0;
     if (*move_possible == false)
     {
         ++dead_ends_found;
@@ -257,7 +244,7 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 
     ++total_moves_evaluated;
 
-    bool result = check_for_win(state_new);
+    bool result = check_for_win(state_new, row, col);
     if (result)
     {
         ++wins_found;
