@@ -21,6 +21,8 @@ struct BoardAndLastMove
 
 int main()
 {
+    SDL_Init(0);
+
     const uint64_t NUM_GAMES = 10000000;
     const uint8_t MAX_NUM_MOVES = 30;
 
@@ -57,10 +59,10 @@ int main()
     }
     uint64_t make_move_end_time = SDL_GetPerformanceCounter();
 
-    double_t make_move_total_time_ns = (double_t)(make_move_end_time - make_move_start_time) / (SDL_GetPerformanceFrequency() / 1000000000);
+    double_t make_move_total_time_ns = (double_t)(make_move_end_time - make_move_start_time) / ((double_t)SDL_GetPerformanceFrequency() / 1000000000);
     double_t make_move_avg_time_ns = make_move_total_time_ns / total_num_moves;
     double_t make_move_num_per_us = 1000 / make_move_avg_time_ns;
-    printf("make_move(): %f times / μs. (total time to make %lu moves: %f ms\n", make_move_num_per_us, total_num_moves, make_move_total_time_ns / 1000000);
+    printf("make_move(): %f times / μs. (total time to make %llu moves: %f ms\n", make_move_num_per_us, total_num_moves, make_move_total_time_ns / 1000000);
 
     bool* wins = (bool*)malloc(sizeof(bool) * NUM_GAMES); // basically just to keep the compiler from optimizing out check_for_win
     uint64_t check_for_win_start_time = SDL_GetPerformanceCounter();
@@ -70,8 +72,8 @@ int main()
     }
     uint64_t check_for_win_end_time = SDL_GetPerformanceCounter();
 
-    double_t check_for_win_total_time_ns = (double_t)(check_for_win_end_time - check_for_win_start_time) / (SDL_GetPerformanceFrequency() / 1000000000);
+    double_t check_for_win_total_time_ns = (double_t)(check_for_win_end_time - check_for_win_start_time) / ((double_t)SDL_GetPerformanceFrequency() / 1000000000);
     double_t check_for_win_avg_time_ns = check_for_win_total_time_ns / NUM_GAMES;
     double_t check_for_win_num_per_us = 1000 / check_for_win_avg_time_ns;
-    printf("check_for_win(): %f times / μs. (total time to check %lu games: %f ms\n", check_for_win_num_per_us, NUM_GAMES, check_for_win_total_time_ns / 1000000);
+    printf("check_for_win(): %f times / μs. (total time to check %llu games: %f ms\n", check_for_win_num_per_us, NUM_GAMES, check_for_win_total_time_ns / 1000000);
 }

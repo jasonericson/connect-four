@@ -293,7 +293,7 @@ bool check_for_win(BoardState* state)
         uint8_t count = 1;
         int8_t diag_row = row - 1;
         int8_t diag_col = 3 - 1;
-        for (diag_row, diag_col; diag_row >= 0 && diag_col >= 0; --diag_row, --diag_col)
+        for (; diag_row >= 0 && diag_col >= 0; --diag_row, --diag_col)
         {
             if (get_board_value(state, diag_row, diag_col) != center)
                 break;
@@ -308,7 +308,7 @@ bool check_for_win(BoardState* state)
 
         diag_row = row + 1;
         diag_col = 3 + 1;
-        for (diag_row, diag_col; diag_row < 6 && diag_col < 7; ++diag_row, ++diag_col)
+        for (; diag_row < 6 && diag_col < 7; ++diag_row, ++diag_col)
         {
             if (get_board_value(state, diag_row, diag_col) != center)
                 break;
@@ -332,7 +332,7 @@ bool check_for_win(BoardState* state)
         uint8_t count = 1;
         int8_t diag_row = row + 1;
         int8_t diag_col = 3 - 1;
-        for (diag_row, diag_col; diag_row < 6 && diag_col >= 0; ++diag_row, --diag_col)
+        for (; diag_row < 6 && diag_col >= 0; ++diag_row, --diag_col)
         {
             if (get_board_value(state, diag_row, diag_col) != center)
                 break;
@@ -347,7 +347,7 @@ bool check_for_win(BoardState* state)
 
         diag_row = row - 1;
         diag_col = 3 + 1;
-        for (diag_row, diag_col; diag_row >= 0 && diag_col < 7; --diag_row, ++diag_col)
+        for (; diag_row >= 0 && diag_col < 7; --diag_row, ++diag_col)
         {
             if (get_board_value(state, diag_row, diag_col) != center)
                 break;
@@ -383,7 +383,7 @@ void sprint_friendly_time(double_t total_seconds, char* buffer)
 
     if (days > 0)
     {
-        sprintf(buffer, "%d day%s, %d hour%s, %d minute%s, %d second%s",
+        snprintf(buffer, 256, "%d day%s, %d hour%s, %d minute%s, %d second%s",
             days, days > 1 ? "s" : "",
             hours, hours > 1 ? "s" : "",
             minutes, minutes > 1 ? "s" : "",
@@ -391,20 +391,20 @@ void sprint_friendly_time(double_t total_seconds, char* buffer)
     }
     else if (hours > 0)
     {
-        sprintf(buffer, "%d hour%s, %d minute%s, %d second%s",
+        snprintf(buffer, 256, "%d hour%s, %d minute%s, %d second%s",
             hours, hours > 1 ? "s" : "",
             minutes, minutes > 1 ? "s" : "",
             seconds, seconds > 1 ? "s": "");
     }
     else if (minutes > 0)
     {
-        sprintf(buffer, "%d minute%s, %d second%s",
+        snprintf(buffer, 256, "%d minute%s, %d second%s",
             minutes, minutes > 1 ? "s" : "",
             seconds, seconds > 1 ? "s": "");
     }
     else
     {
-        sprintf(buffer, "%d second%s",
+        snprintf(buffer, 256, "%d second%s",
             seconds, seconds > 1 ? "s": "");
     }
 }
@@ -420,7 +420,7 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
         uint64_t time_elapsed = time_current - get_move_score_start_time;
         double_t time_to_complete = (time_elapsed / 1000.0) * (100.0 / percent_completed);
 
-        printf("Total moves: %lu (%f%%), wins found: %lu, dead-ends found: %lu, depth: %d\n", total_moves_evaluated, percent_completed, wins_found, dead_ends_found, min_depth);
+        printf("Total moves: %llu (%f%%), wins found: %llu, dead-ends found: %llu, depth: %d\n", total_moves_evaluated, percent_completed, wins_found, dead_ends_found, min_depth);
 
         char* friendly_time_string = (char*)malloc(sizeof(char) * 512);
         sprint_friendly_time(time_to_complete, friendly_time_string);
@@ -476,37 +476,37 @@ int32_t get_move_score_full()
 
 void sprint_board(BoardState* state, char* buffer)
 {
-    sprintf(buffer, "_1_2_3_4_5_6_7_\n");
+    snprintf(buffer, 256, "_1_2_3_4_5_6_7_\n");
     buffer += 16;
     for (int8_t row = 6 - 1; row >= 0; --row)
     {
-        sprintf(buffer, "|");
+        snprintf(buffer, 256, "|");
         buffer += 1;
         for (uint8_t col = 0; col < 7; ++col)
         {
             switch (get_board_value(state, row, col))
             {
                 case 1:
-                    sprintf(buffer, "X");
+                    snprintf(buffer, 256, "X");
                     buffer += 1;
                     break;
                 case 2:
-                    sprintf(buffer, "O");
+                    snprintf(buffer, 256, "O");
                     buffer += 1;
                     break;
                 default:
-                    sprintf(buffer, " ");
+                    snprintf(buffer, 256, " ");
                     buffer += 1;
                     break;
             }
 
-            sprintf(buffer, "|");
+            snprintf(buffer, 256, "|");
             buffer += 1;
         }
-        sprintf(buffer, "\n");
+        snprintf(buffer, 256, "\n");
         buffer += 1;
     }
-    sprintf(buffer, "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n");
+    snprintf(buffer, 256, "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n");
 }
 
 void print_board(BoardState* state)
@@ -515,4 +515,55 @@ void print_board(BoardState* state)
     sprint_board(state, board);
     printf("%s", board);
     free(board);
+}
+
+bool test_print_board()
+{
+    BoardState state = { 1, 1, 1, 1, 1, 1, 1 };
+
+    make_move(1, 5, state);
+    make_move(2, 0, state);
+    make_move(1, 6, state);
+    make_move(2, 6, state);
+    make_move(1, 0, state);
+    make_move(2, 3, state);
+    make_move(1, 4, state);
+    make_move(2, 1, state);
+    make_move(1, 3, state);
+    make_move(2, 4, state);
+    make_move(1, 5, state);
+    make_move(2, 5, state);
+    make_move(1, 4, state);
+    make_move(2, 5, state);
+    make_move(1, 3, state);
+    make_move(2, 0, state);
+    make_move(1, 1, state);
+    make_move(2, 1, state);
+    
+    const char* correct_board =
+        "_1_2_3_4_5_6_7_\n"
+        "| | | | | | | |\n"
+        "| | | | | | | |\n"
+        "| | | | | |O| |\n"
+        "|O|O| |X|X|O| |\n"
+        "|X|X| |X|O|X|O|\n"
+        "|O|O| |O|X|X|X|\n"
+        "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n";
+
+    char* test_board = (char*)malloc(sizeof(char) * 256);
+    sprint_board(state, test_board);
+
+    bool result = strcmp(correct_board, test_board) == 0;
+    free(test_board);
+    return result;
+}
+
+bool test_print_friendly_time()
+{
+    char* test_string = (char*)malloc(sizeof(char) * 1024);
+    sprint_friendly_time(3412441, test_string);
+
+    bool result = strcmp("39 days, 11 hours, 54 minutes, 1 second", test_string) == 0;
+    free(test_string);
+    return result;
 }
