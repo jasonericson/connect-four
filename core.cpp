@@ -110,7 +110,7 @@ bool check_for_win(BoardState state)
         uint8_t count = 1;
         int8_t diag_row = row - 1;
         int8_t diag_col = 3 - 1;
-        for (diag_row, diag_col; diag_row >= 0 && diag_col >= 0; --diag_row, --diag_col)
+        for (; diag_row >= 0 && diag_col >= 0; --diag_row, --diag_col)
         {
             if (get_board_value(state, diag_row, diag_col) != center)
                 break;
@@ -125,7 +125,7 @@ bool check_for_win(BoardState state)
 
         diag_row = row + 1;
         diag_col = 3 + 1;
-        for (diag_row, diag_col; diag_row < 6 && diag_col < 7; ++diag_row, ++diag_col)
+        for (; diag_row < 6 && diag_col < 7; ++diag_row, ++diag_col)
         {
             if (get_board_value(state, diag_row, diag_col) != center)
                 break;
@@ -149,7 +149,7 @@ bool check_for_win(BoardState state)
         uint8_t count = 1;
         int8_t diag_row = row + 1;
         int8_t diag_col = 3 - 1;
-        for (diag_row, diag_col; diag_row < 6 && diag_col >= 0; ++diag_row, --diag_col)
+        for (; diag_row < 6 && diag_col >= 0; ++diag_row, --diag_col)
         {
             if (get_board_value(state, diag_row, diag_col) != center)
                 break;
@@ -164,7 +164,7 @@ bool check_for_win(BoardState state)
 
         diag_row = row - 1;
         diag_col = 3 + 1;
-        for (diag_row, diag_col; diag_row >= 0 && diag_col < 7; --diag_row, ++diag_col)
+        for (; diag_row >= 0 && diag_col < 7; --diag_row, ++diag_col)
         {
             if (get_board_value(state, diag_row, diag_col) != center)
                 break;
