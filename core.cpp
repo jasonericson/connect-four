@@ -5,6 +5,9 @@
 #include "SDL.h"
 #include <stdio.h>
 
+MakeMoveResult make_move_table_partial[2][0b01000000];
+MakeMoveResult make_move_table_full[2][0b01111111];
+
 void init_board(BoardState state)
 {
     for (uint8_t col = 0; col < 7; ++col)
@@ -20,23 +23,23 @@ inline uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
     return state[col] < (1 << (row + 1)) ? 0 : ((state[col] & (1 << row)) >> row) + 1;
 }
 
-int8_t make_move(uint8_t player, uint8_t column, BoardState state)
+int8_t make_move_column(uint8_t player, uint8_t* column_state)
 {
-    assert(column >= 0 && column < 7);
-
-    if (state[column] >= 0b01000000)
+    if (*column_state >= 0b01000000)
         return -1;
 
-    uint8_t mask = state[column]; // 0011 0000 (example)
-    mask |= mask >> 1;            // 0011 1000
-    mask |= mask >> 2;            // 0011 1110
-    mask |= mask >> 4;            // 0011 1111
-    ++mask;                       // 0100 0000
+    uint8_t mask = *column_state;      // 0011 0000 (example)
+    mask |= mask >> 1;                 // 0011 1000
+    mask |= mask >> 2;                 // 0011 1110
+    mask |= mask >> 4;                 // 0011 1111
+    ++mask;                            // 0100 0000
 
-    state[column] |= mask;
+    // add 1 to top of stack
+    *column_state |= mask;             // 0111 0000
     if (player == 1)
     {
-        state[column] &= ~(mask >> 1);
+        // clear top piece of the stack for player 0 (1)
+        *column_state &= ~(mask >> 1); // 0101 0000
     }
 
     switch (mask)
@@ -57,6 +60,44 @@ int8_t make_move(uint8_t player, uint8_t column, BoardState state)
             assert(false);
             return -1;
     }
+}
+
+void init_core()
+{
+    SDL_Init(0);
+
+    // Building partial lookup table (skips full columns)
+    for (uint8_t player = 0; player < 2; ++player)
+    {
+        make_move_table_partial[player][0] = MakeMoveResult { -1, 0 };
+        for (uint8_t column_state = 1; column_state < 0b01000000; ++column_state)
+        {
+            MakeMoveResult result;
+            result.column_state = column_state;
+            result.row = make_move_column(player + 1, &result.column_state);
+            make_move_table_partial[player][column_state] = result;
+        }
+    }
+
+    // Building full lookup table (includes full columns)
+    for (uint8_t player = 0; player < 2; ++player)
+    {
+        make_move_table_full[player][0] = MakeMoveResult { -1, 0 };
+        for (uint8_t column_state = 1; column_state > 0; ++column_state)
+        {
+            MakeMoveResult result;
+            result.column_state = column_state;
+            result.row = make_move_column(player + 1, &result.column_state);
+            make_move_table_full[player][column_state] = result;
+        }
+    }
+}
+
+int8_t make_move(uint8_t player, uint8_t column, BoardState state)
+{
+    assert(column >= 0 && column < 7);
+
+    return make_move_column(player, &state[column]);
 }
 
 bool check_for_win(BoardState state, uint8_t last_move_row, uint8_t last_move_col)

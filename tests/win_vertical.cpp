@@ -22,6 +22,8 @@ Game games[10] = {
 
 int main()
 {
+    init_core();
+
     for (uint8_t i = 0; i < 10; ++i)
     {
         BoardState state;

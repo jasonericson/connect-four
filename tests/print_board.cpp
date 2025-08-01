@@ -1,10 +1,13 @@
 #include "../core.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 int main()
 {
+    init_core();
+
     BoardState state;
     init_board(state);
 
@@ -37,10 +40,18 @@ int main()
         "|O|O| |O|X|X|X|\n"
         "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n";
 
-    char* test_board = (char*)malloc(sizeof(char) * 256);
+    char test_board[256];
     sprint_board(state, test_board);
 
     int result = strcmp(correct_board, test_board);
-    free(test_board);
+    if (result != 0)
+    {
+        printf("Print board failed!\n");
+        printf("Expected:\n");
+        printf("%s", correct_board);
+        printf("Actual:\n");
+        printf("%s", test_board);
+    }
+
     return result;
 }

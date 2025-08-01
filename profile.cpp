@@ -19,13 +19,11 @@ struct BoardAndLastMove
     int8_t last_move_col;
 };
 
-int main()
+const uint64_t NUM_GAMES = 10000000;
+const uint8_t MAX_NUM_MOVES = 30;
+
+void run_profile(const char* label, int8_t (*make_move_func)(uint8_t, uint8_t, BoardState))
 {
-    SDL_Init(0);
-
-    const uint64_t NUM_GAMES = 10000000;
-    const uint8_t MAX_NUM_MOVES = 30;
-
     uint64_t total_num_moves = 0;
     Game* games = (Game*)malloc(sizeof(Game) * NUM_GAMES);
     for (uint64_t i = 0; i < NUM_GAMES; ++i)
@@ -52,7 +50,7 @@ int main()
         for (uint8_t j = 0; j < games[i].num_moves; ++j)
         {
             int8_t col = games[i].moves[j];
-            int8_t row = make_move(player, col, states[i].state);
+            int8_t row = make_move_func(player, col, states[i].state);
             if (row >= 0)
             {
                 states[i].last_move_row = row;
@@ -66,7 +64,7 @@ int main()
     double_t make_move_total_time_ns = (double_t)(make_move_end_time - make_move_start_time) / ((double_t)SDL_GetPerformanceFrequency() / 1000000000);
     double_t make_move_avg_time_ns = make_move_total_time_ns / total_num_moves;
     double_t make_move_num_per_us = 1000 / make_move_avg_time_ns;
-    printf("make_move(): %f times / μs. (total time to make %llu moves: %f ms\n", make_move_num_per_us, total_num_moves, make_move_total_time_ns / 1000000);
+    printf("%s(): %f times / μs. (total time to make %llu moves: %f ms\n", label, make_move_num_per_us, total_num_moves, make_move_total_time_ns / 1000000);
 
     bool* wins = (bool*)malloc(sizeof(bool) * NUM_GAMES); // basically just to keep the compiler from optimizing out check_for_win
     uint64_t check_for_win_start_time = SDL_GetPerformanceCounter();
@@ -80,4 +78,13 @@ int main()
     double_t check_for_win_avg_time_ns = check_for_win_total_time_ns / NUM_GAMES;
     double_t check_for_win_num_per_us = 1000 / check_for_win_avg_time_ns;
     printf("check_for_win(): %f times / μs. (total time to check %llu games: %f ms\n", check_for_win_num_per_us, NUM_GAMES, check_for_win_total_time_ns / 1000000);
+}
+
+int main()
+{
+    init_core();
+
+    run_profile("make_move", &make_move);
+    run_profile("make_move_lookup_partial", &make_move_lookup_partial);
+    run_profile("make_move_lookup_full", &make_move_lookup_full);
 }
