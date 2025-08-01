@@ -24,26 +24,39 @@ int8_t make_move(uint8_t player, uint8_t column, BoardState state)
 {
     assert(column >= 0 && column < 7);
 
-    uint8_t probe = 0b01000000;
-
-    if (state[column] >= probe)
+    if (state[column] >= 0b01000000)
         return -1;
 
-    int8_t row = 6;
-    while (state[column] < probe)
-    {
-        probe >>= 1;
-        --row;
-    }
+    uint8_t mask = state[column]; // 0011 0000 (example)
+    mask |= mask >> 1;            // 0011 1000
+    mask |= mask >> 2;            // 0011 1110
+    mask |= mask >> 4;            // 0011 1111
+    ++mask;                       // 0100 0000
 
+    state[column] |= mask;
     if (player == 1)
     {
-        state[column] &= ~(probe);
+        state[column] &= ~(mask >> 1);
     }
 
-    state[column] |= (probe << 1);
-
-    return row;
+    switch (mask)
+    {
+        case 0b00000010:
+            return 0;
+        case 0b00000100:
+            return 1;
+        case 0b00001000:
+            return 2;
+        case 0b00010000:
+            return 3;
+        case 0b00100000:
+            return 4;
+        case 0b01000000:
+            return 5;
+        default:
+            assert(false);
+            return -1;
+    }
 }
 
 bool check_for_win(BoardState state, uint8_t last_move_row, uint8_t last_move_col)
