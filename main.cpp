@@ -12,7 +12,7 @@ int main()
     SDL_Init(0);
 
     BoardState state = { 1, 1, 1, 1, 1, 1, 1 };
-    uint8_t player = 1;
+    uint8_t player = 0;
 
     // for (uint8_t row = 0; row < 6; ++row)
     // {

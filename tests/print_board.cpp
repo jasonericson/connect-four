@@ -11,24 +11,24 @@ int main()
     BoardState state;
     init_board(state);
 
-    make_move(1, 5, state);
-    make_move(2, 0, state);
-    make_move(1, 6, state);
-    make_move(2, 6, state);
-    make_move(1, 0, state);
-    make_move(2, 3, state);
-    make_move(1, 4, state);
-    make_move(2, 1, state);
-    make_move(1, 3, state);
-    make_move(2, 4, state);
-    make_move(1, 5, state);
-    make_move(2, 5, state);
-    make_move(1, 4, state);
-    make_move(2, 5, state);
-    make_move(1, 3, state);
-    make_move(2, 0, state);
-    make_move(1, 1, state);
-    make_move(2, 1, state);
+    make_move_lookup_full(0, 5, state);
+    make_move_lookup_full(1, 0, state);
+    make_move_lookup_full(0, 6, state);
+    make_move_lookup_full(1, 6, state);
+    make_move_lookup_full(0, 0, state);
+    make_move_lookup_full(1, 3, state);
+    make_move_lookup_full(0, 4, state);
+    make_move_lookup_full(1, 1, state);
+    make_move_lookup_full(0, 3, state);
+    make_move_lookup_full(1, 4, state);
+    make_move_lookup_full(0, 5, state);
+    make_move_lookup_full(1, 5, state);
+    make_move_lookup_full(0, 4, state);
+    make_move_lookup_full(1, 5, state);
+    make_move_lookup_full(0, 3, state);
+    make_move_lookup_full(1, 0, state);
+    make_move_lookup_full(0, 1, state);
+    make_move_lookup_full(1, 1, state);
     
     const char* correct_board =
         "_1_2_3_4_5_6_7_\n"

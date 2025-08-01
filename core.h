@@ -25,7 +25,7 @@ inline int8_t make_move_lookup_partial(uint8_t player, uint8_t column, BoardStat
     if (state[column] >= 0b01000000)
         return -1;
 
-    MakeMoveResult result = make_move_table_partial[player - 1][state[column]];
+    MakeMoveResult result = make_move_table_partial[player][state[column]];
     state[column] = result.column_state;
     return result.row;
 }
@@ -34,7 +34,7 @@ inline int8_t make_move_lookup_full(uint8_t player, uint8_t column, BoardState s
 {
     assert(column >= 0 && column < 7);
 
-    MakeMoveResult result = make_move_table_full[player - 1][state[column]];
+    MakeMoveResult result = make_move_table_full[player][state[column]];
     state[column] = result.column_state;
     return result.row;
 }

@@ -46,7 +46,7 @@ void run_profile(const char* label, int8_t (*make_move_func)(uint8_t, uint8_t, B
     uint64_t make_move_start_time = SDL_GetPerformanceCounter();
     for (uint64_t i = 0; i < NUM_GAMES; ++i)
     {
-        uint8_t player = 1;
+        uint8_t player = 0;
         for (uint8_t j = 0; j < games[i].num_moves; ++j)
         {
             int8_t col = games[i].moves[j];
@@ -55,7 +55,7 @@ void run_profile(const char* label, int8_t (*make_move_func)(uint8_t, uint8_t, B
             {
                 states[i].last_move_row = row;
                 states[i].last_move_col = col;
-                player = 3 - player;
+                player = 1 - player;
             }
         }
     }

@@ -36,9 +36,9 @@ int8_t make_move_column(uint8_t player, uint8_t* column_state)
 
     // add 1 to top of stack
     *column_state |= mask;             // 0111 0000
-    if (player == 1)
+    if (player == 0)
     {
-        // clear top piece of the stack for player 0 (1)
+        // clear top piece of the stack for player 0
         *column_state &= ~(mask >> 1); // 0101 0000
     }
 
@@ -74,7 +74,7 @@ void init_core()
         {
             MakeMoveResult result;
             result.column_state = column_state;
-            result.row = make_move_column(player + 1, &result.column_state);
+            result.row = make_move_column(player, &result.column_state);
             make_move_table_partial[player][column_state] = result;
         }
     }
@@ -87,7 +87,7 @@ void init_core()
         {
             MakeMoveResult result;
             result.column_state = column_state;
-            result.row = make_move_column(player + 1, &result.column_state);
+            result.row = make_move_column(player, &result.column_state);
             make_move_table_full[player][column_state] = result;
         }
     }
@@ -307,7 +307,7 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
     }
 
     int32_t total_score = 0;
-    player_this_turn = player_this_turn % 2 + 1;
+    player_this_turn = 1 - player_this_turn;
     for (uint8_t col = 0; col < 7; ++col)
     {
         bool temp_move_possible;
@@ -327,7 +327,7 @@ int32_t get_move_score_full()
     get_move_score_start_time = SDL_GetTicks();
     time_of_last_print = get_move_score_start_time;
 
-    return get_move_score(1, 1, 0, state, &move_possible, 1);
+    return get_move_score(0, 0, 0, state, &move_possible, 1);
 }
 
 void sprint_board(BoardState state, char* buffer)
