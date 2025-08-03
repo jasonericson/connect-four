@@ -24,7 +24,7 @@ set(TEST_LIST
 )
 
 foreach(TEST_NAME ${TEST_LIST})
-    add_executable(${TEST_NAME} tests/${TEST_NAME}.cpp core.cpp helpers.cpp)
+    add_executable(${TEST_NAME} tests/${TEST_NAME}.cpp core.cpp tests/win_test.cpp helpers.cpp)
     target_link_libraries(${TEST_NAME} PRIVATE SDL3::SDL3)
     target_include_directories(${TEST_NAME} PRIVATE SDL/include/SDL3)
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})

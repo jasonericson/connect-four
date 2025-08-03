@@ -1,12 +1,5 @@
-#include "../core.h"
+#include "win_test.h"
 
-#include <stdio.h>
-
-struct Game
-{
-    uint8_t num_moves;
-    uint8_t moves[30];
-};
 Game games[10] = {
     { 17, { 6, 3, 2, 0, 4, 0, 6, 5, 5, 5, 1, 6, 5, 6, 3, 6, 4, }},
     { 25, { 6, 6, 0, 0, 2, 2, 3, 2, 3, 5, 3, 2, 4, 3, 5, 4, 3, 0, 5, 0, 6, 4, 0, 4, 1, }},
@@ -22,28 +15,5 @@ Game games[10] = {
 
 int main()
 {
-    init_core();
-
-    for (uint8_t i = 0; i < 10; ++i)
-    {
-        BoardState state;
-        init_board(state);
-        uint8_t player = 0;
-
-        int8_t row;
-        for (uint8_t j = 0; j < games[i].num_moves; ++j)
-        {
-            row = make_move(player, games[i].moves[j], state);
-            player = 1 - player;
-        }
-
-        if (!check_for_win(state, row, games[i].moves[games[i].num_moves - 1]))
-        {
-            printf("Failed on game %d\n", i);
-            print_board(state);
-            return 1;
-        }
-    }
-
-    return 0;
+    return win_test(games) ? 0 : 1;
 }
