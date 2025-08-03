@@ -9,7 +9,7 @@
 
 int main()
 {
-    SDL_Init(0);
+    init_core();
 
     BoardState state = { 1, 1, 1, 1, 1, 1, 1 };
     uint8_t player = 0;

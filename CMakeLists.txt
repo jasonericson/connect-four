@@ -4,11 +4,11 @@ project(ConnectFour)
 
 add_subdirectory(SDL EXCLUDE_FROM_ALL)
 
-add_executable(ConnectFour main.cpp core.cpp)
+add_executable(ConnectFour main.cpp core.cpp helpers.cpp)
 target_link_libraries(ConnectFour PRIVATE SDL3::SDL3)
 target_include_directories(ConnectFour PRIVATE SDL/include/SDL3)
 
-add_executable(ConnectFour-Profile profile.cpp core.cpp)
+add_executable(ConnectFour-Profile profile.cpp core.cpp helpers.cpp)
 target_link_libraries(ConnectFour-Profile PRIVATE SDL3::SDL3)
 target_include_directories(ConnectFour-Profile PRIVATE SDL/include/SDL3)
 
@@ -24,7 +24,7 @@ set(TEST_LIST
 )
 
 foreach(TEST_NAME ${TEST_LIST})
-    add_executable(${TEST_NAME} tests/${TEST_NAME}.cpp core.cpp)
+    add_executable(${TEST_NAME} tests/${TEST_NAME}.cpp core.cpp helpers.cpp)
     target_link_libraries(${TEST_NAME} PRIVATE SDL3::SDL3)
     target_include_directories(${TEST_NAME} PRIVATE SDL/include/SDL3)
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})

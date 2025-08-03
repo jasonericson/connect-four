@@ -1,4 +1,5 @@
 #include "core.h"
+#include "helpers.h"
 
 #include <cassert>
 #include <math.h>
@@ -221,50 +222,12 @@ bool check_for_win(BoardState state, uint8_t last_move_row, uint8_t last_move_co
     return false;
 }
 
-uint64_t total_moves_evaluated = 0;
-uint64_t wins_found = 0;
-uint64_t dead_ends_found = 0;
-uint8_t min_depth = 50;
+uint64_t total_moves_evaluated;
+uint64_t wins_found;
+uint64_t dead_ends_found;
+uint8_t min_depth;
 uint64_t time_of_last_print;
 uint64_t get_move_score_start_time;
-
-void sprint_friendly_time(double_t total_seconds, char* buffer)
-{
-    uint32_t days = (uint32_t)(total_seconds / (60 * 60 * 24));
-    total_seconds -= days * 60.0 * 60.0 * 24.0;
-    uint32_t hours = (uint32_t)(total_seconds / (60 * 60));
-    total_seconds -= hours * 60.0 * 60.0;
-    uint32_t minutes = (uint32_t)(total_seconds / 60);
-    total_seconds -= minutes * 60.0;
-    uint32_t seconds = (uint32_t)total_seconds;
-
-    if (days > 0)
-    {
-        snprintf(buffer, 256, "%d day%s, %d hour%s, %d minute%s, %d second%s",
-            days, days > 1 ? "s" : "",
-            hours, hours > 1 ? "s" : "",
-            minutes, minutes > 1 ? "s" : "",
-            seconds, seconds > 1 ? "s": "");
-    }
-    else if (hours > 0)
-    {
-        snprintf(buffer, 256, "%d hour%s, %d minute%s, %d second%s",
-            hours, hours > 1 ? "s" : "",
-            minutes, minutes > 1 ? "s" : "",
-            seconds, seconds > 1 ? "s": "");
-    }
-    else if (minutes > 0)
-    {
-        snprintf(buffer, 256, "%d minute%s, %d second%s",
-            minutes, minutes > 1 ? "s" : "",
-            seconds, seconds > 1 ? "s": "");
-    }
-    else
-    {
-        snprintf(buffer, 256, "%d second%s",
-            seconds, seconds > 1 ? "s": "");
-    }
-}
 
 int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, BoardState state, bool *move_possible, uint8_t depth)
 {
@@ -279,15 +242,14 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 
         printf("Total moves: %llu (%f%%), wins found: %llu, dead-ends found: %llu, depth: %d\n", total_moves_evaluated, percent_completed, wins_found, dead_ends_found, min_depth);
 
-        char* friendly_time_string = (char*)malloc(sizeof(char) * 512);
+        char friendly_time_string[256];
         sprint_friendly_time(time_to_complete, friendly_time_string);
         printf("- Time to complete: %s\n", friendly_time_string);
-        free(friendly_time_string);
     }
 
     BoardState state_new;
     memcpy(state_new, state, sizeof(BoardState));
-    int8_t row = make_move(player_this_turn, col, state_new);
+    int8_t row = make_move_lookup_full(player_this_turn, col, state_new);
     *move_possible = row >= 0;
     if (*move_possible == false)
     {
@@ -326,6 +288,10 @@ int32_t get_move_score_full()
     bool move_possible;
     get_move_score_start_time = SDL_GetTicks();
     time_of_last_print = get_move_score_start_time;
+    total_moves_evaluated = 0;
+    wins_found = 0;
+    dead_ends_found = 0;
+    min_depth = 50;
 
     return get_move_score(0, 0, 0, state, &move_possible, 1);
 }
