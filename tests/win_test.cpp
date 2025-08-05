@@ -20,7 +20,7 @@ bool win_test(Game games[10], bool fail_on_win /* = false */)
             player = 1 - player;
         }
 
-        if (fail_on_win == check_for_win(state, row, games[i].moves[games[i].num_moves - 1]))
+        if (fail_on_win == check_for_win(state, 1 - player, row, games[i].moves[games[i].num_moves - 1]))
         {
             printf("Failed on game %d\n", i);
             print_board(state);
@@ -30,14 +30,3 @@ bool win_test(Game games[10], bool fail_on_win /* = false */)
 
     return true;
 }
-
-/*
-
-          fow
-      true | false
-      ------------
-    t|  t  |  f  |
-cfw  |------------
-    f|  f  |  t  |
-      ------------
-*/

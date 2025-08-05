@@ -16,6 +16,7 @@ struct Game
 struct BoardAndLastMove
 {
     BoardState state;
+    uint8_t last_move_player;
     int8_t last_move_row;
     int8_t last_move_col;
 };
@@ -54,6 +55,7 @@ void run_profile(const char* label, int8_t (*make_move_func)(uint8_t, uint8_t, B
             int8_t row = make_move_func(player, col, states[i].state);
             if (row >= 0)
             {
+                states[i].last_move_player = player;
                 states[i].last_move_row = row;
                 states[i].last_move_col = col;
                 player = 1 - player;
@@ -76,7 +78,7 @@ void run_profile(const char* label, int8_t (*make_move_func)(uint8_t, uint8_t, B
     uint64_t check_for_win_start_time = SDL_GetPerformanceCounter();
     for (uint64_t i = 0; i < NUM_GAMES; ++i)
     {
-        wins[i] = check_for_win(states[i].state, states[i].last_move_row, states[i].last_move_col);
+        wins[i] = check_for_win(states[i].state, states[i].last_move_player, states[i].last_move_row, states[i].last_move_col);
     }
     uint64_t check_for_win_end_time = SDL_GetPerformanceCounter();
 

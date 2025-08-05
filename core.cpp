@@ -17,11 +17,11 @@ void init_board(BoardState state)
     }
 }
 
-inline uint8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
+inline int8_t get_board_value(BoardState state, uint8_t row, uint8_t col)
 {
     assert(row < 6 && col < 7);
 
-    return state[col] < (1 << (row + 1)) ? 0 : ((state[col] & (1 << row)) >> row) + 1;
+    return state[col] < (1 << (row + 1)) ? -1 : ((state[col] & (1 << row)) >> row);
 }
 
 int8_t make_move_column(uint8_t player, uint8_t* column_state)
@@ -101,121 +101,125 @@ int8_t make_move(uint8_t player, uint8_t column, BoardState state)
     return make_move_column(player, &state[column]);
 }
 
-bool check_for_win(BoardState state, uint8_t last_move_row, uint8_t last_move_col)
+inline uint64_t bit_set(uint64_t num, uint8_t row, uint8_t col)
 {
+    return num | ((uint64_t)1 << (col * 8 + (row)));
+}
+
+bool check_for_win(BoardState state, uint8_t last_move_player, uint8_t last_move_row, uint8_t last_move_col)
+{
+    assert(last_move_player <= 1);
     assert(last_move_row < 6 && last_move_col < 7);
 
-    uint8_t last_move_player = get_board_value(state, last_move_row, last_move_col);
+    uint8_t processed_board_state[8] = { 0 };
+    for (uint8_t col = 0; col < 7; ++col)
+    {
+        // Remove top-of-stack bit
+        uint8_t mask = state[col];          // 0011 0000 (example)
+        mask |= mask >> 1;                  // 0011 1000
+        mask |= mask >> 2;                  // 0011 1110
+        mask |= mask >> 4;                  // 0011 1111
+        mask >>= 1;                         // 0001 1111
+
+        uint8_t processed_col = state[col];
+        if (last_move_player == 0)
+        {
+            processed_col = ~processed_col; // 1100 1111
+            processed_col &= mask;          // 0000 1111
+        }
+        else
+        {
+            processed_col &= mask;          // 0001 0000
+        }
+
+        processed_board_state[col] = processed_col;
+    }
+
+    uint64_t* processed_board_state_binary = (uint64_t*)&processed_board_state;
 
     // Vertical
-    switch (state[last_move_col])
+    for (uint8_t row_start = 0; row_start < 3; ++row_start)
     {
-        case 0b00010000:
-        case 0b00011111:
-        case 0b00100001:
-        case 0b00111110:
-        case 0b01000010:
-        case 0b01000011:
-        case 0b01111100:
-        case 0b01111101:
+        uint64_t winning_board_state = 0;
+        for (uint8_t row = 0; row < 4; ++row)
+        {
+            winning_board_state = bit_set(winning_board_state, row_start + row, last_move_col);
+        }
+
+        if ((winning_board_state & *processed_board_state_binary) == winning_board_state)
+        {
             return true;
-        default:
-            break;
+        }
     }
 
     // Horizontal
-    uint8_t center = get_board_value(state, last_move_row, 3);
-    if (center == last_move_player)
+    for (uint8_t col_start = 0; col_start < 4; ++col_start)
     {
-        uint8_t count = 1;
-        for (int8_t col = 2; col >= 0; --col)
+        uint64_t winning_board_state = 0;
+        for (uint8_t col = 0; col < 4; ++col)
         {
-            if (get_board_value(state, last_move_row, col) != center)
-                break;
-
-            ++count;
+            winning_board_state = bit_set(winning_board_state, last_move_row, col_start + col);
         }
 
-        if (count == 4)
+        if ((winning_board_state & *processed_board_state_binary) == winning_board_state)
         {
             return true;
-        }
-
-        for (uint8_t col = 4; col < 7; ++col)
-        {
-            if (get_board_value(state, last_move_row, col) != center)
-                break;
-
-            ++count;
-
-            if (count == 4)
-            {
-                return true;
-            }
         }
     }
 
     // Diagonal (bottom-left to top-right)
-    uint8_t count = 1;
-    int8_t diag_row = last_move_row - 1;
-    int8_t diag_col = last_move_col - 1;
-    for (; diag_row >= 0 && diag_col >= 0; --diag_row, --diag_col)
     {
-        if (get_board_value(state, diag_row, diag_col) != last_move_player)
-            break;
-
-        ++count;
-
-        if (count >= 4)
+        uint8_t diag_row = last_move_row;
+        uint8_t diag_col = last_move_col;
+        while (diag_row > 0 && diag_col > 0)
         {
-            return true;
+            --diag_row;
+            --diag_col;
         }
-    }
 
-    diag_row = last_move_row + 1;
-    diag_col = last_move_col + 1;
-    for (; diag_row < 6 && diag_col < 7; ++diag_row, ++diag_col)
-    {
-        if (get_board_value(state, diag_row, diag_col) != last_move_player)
-            break;
-
-        ++count;
-
-        if (count >= 4)
+        while (diag_row + 4 <= 6 && diag_col + 4 <= 7)
         {
-            return true;
+            uint64_t winning_board_state = 0;
+            for (uint8_t i = 0; i < 4; ++i)
+            {
+                winning_board_state = bit_set(winning_board_state, diag_row + i, diag_col + i);
+            }
+
+            if ((winning_board_state & *processed_board_state_binary) == winning_board_state)
+            {
+                return true;
+            }
+
+            ++diag_row;
+            ++diag_col;
         }
     }
 
     // Diagonal (top-left to bottom-right)
-    count = 1;
-    diag_row = last_move_row + 1;
-    diag_col = last_move_col - 1;
-    for (; diag_row < 6 && diag_col >= 0; ++diag_row, --diag_col)
     {
-        if (get_board_value(state, diag_row, diag_col) != last_move_player)
-            break;
-
-        ++count;
-
-        if (count >= 4)
+        int8_t diag_row = last_move_row;
+        uint8_t diag_col = last_move_col;
+        while (diag_row + 1 < 6 && diag_col > 0)
         {
-            return true;
+            ++diag_row;
+            --diag_col;
         }
-    }
 
-    diag_row = last_move_row - 1;
-    diag_col = last_move_col + 1;
-    for (; diag_row >= 0 && diag_col < 7; --diag_row, ++diag_col)
-    {
-        if (get_board_value(state, diag_row, diag_col) != last_move_player)
-            break;
-
-        ++count;
-
-        if (count >= 4)
+        while ((diag_row + 1) - 4 >= 0 && diag_col + 4 <= 7)
         {
-            return true;
+            uint64_t winning_board_state = 0;
+            for (uint8_t i = 0; i < 4; ++i)
+            {
+                winning_board_state = bit_set(winning_board_state, diag_row - i, diag_col + i);
+            }
+
+            if ((winning_board_state & *processed_board_state_binary) == winning_board_state)
+            {
+                return true;
+            }
+
+            --diag_row;
+            ++diag_col;
         }
     }
 
@@ -260,7 +264,7 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
 
     ++total_moves_evaluated;
 
-    bool result = check_for_win(state_new, row, col);
+    bool result = check_for_win(state_new, player_this_turn, row, col);
     if (result)
     {
         ++wins_found;
@@ -308,12 +312,12 @@ void sprint_board(BoardState state, char* buffer)
         {
             switch (get_board_value(state, row, col))
             {
-                case 1:
-                    snprintf(buffer, 256, "X");
+                case 0:
+                    snprintf(buffer, 256, "O");
                     buffer += 1;
                     break;
-                case 2:
-                    snprintf(buffer, 256, "O");
+                case 1:
+                    snprintf(buffer, 256, "X");
                     buffer += 1;
                     break;
                 default:
