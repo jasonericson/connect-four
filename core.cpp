@@ -6,9 +6,16 @@
 #include "SDL.h"
 #include <stdio.h>
 
+struct WinningBoardCollection
+{
+    uint8_t num_boards;
+    uint64_t* boards;
+};
+
 MakeMoveResult make_move_table_partial[2][0b01000000];
 MakeMoveResult make_move_table_full[2][0b01111111];
 uint8_t check_for_win_processed_column_table[2][0b01111111];
+WinningBoardCollection check_for_win_processed_winning_boards_table[6][7];
 
 void init_board(BoardState state)
 {
@@ -62,6 +69,11 @@ int8_t make_move_column(uint8_t player, uint8_t* column_state)
             assert(false);
             return -1;
     }
+}
+
+inline uint64_t bit_set(uint64_t num, uint8_t row, uint8_t col)
+{
+    return num | ((uint64_t)1 << (col * 8 + (row)));
 }
 
 void init_core()
@@ -121,6 +133,101 @@ void init_core()
             check_for_win_processed_column_table[player][in_column] = out_column;
         }
     }
+
+    // Building check_for_win winning board lookup table
+    for (uint8_t table_row = 0; table_row < 6; ++table_row)
+    {
+        for (uint8_t table_col = 0; table_col < 7; ++table_col)
+        {
+            uint64_t boards[32];
+            uint8_t num_boards = 0;
+
+            // Vertical
+            for (uint8_t row_start = 0; row_start < 3; ++row_start)
+            {
+                uint64_t winning_board_state = 0;
+                for (uint8_t row_offset = 0; row_offset < 4; ++row_offset)
+                {
+                    winning_board_state = bit_set(winning_board_state, row_start + row_offset, table_col);
+                }
+
+                boards[num_boards] = winning_board_state;
+                ++num_boards;
+            }
+
+            // Horizontal
+            for (uint8_t col_start = 0; col_start < 4; ++col_start)
+            {
+                uint64_t winning_board_state = 0;
+                for (uint8_t col_offset = 0; col_offset < 4; ++col_offset)
+                {
+                    winning_board_state = bit_set(winning_board_state, table_row, col_start + col_offset);
+                }
+
+                boards[num_boards] = winning_board_state;
+                ++num_boards;
+            }
+
+            // Diagonal (bottom-left to top-right)
+            {
+                uint8_t diag_row = table_row;
+                uint8_t diag_col = table_col;
+                while (diag_row > 0 && diag_col > 0)
+                {
+                    --diag_row;
+                    --diag_col;
+                }
+
+                while (diag_row + 4 <= 6 && diag_col + 4 <= 7)
+                {
+                    uint64_t winning_board_state = 0;
+                    for (uint8_t i = 0; i < 4; ++i)
+                    {
+                        winning_board_state = bit_set(winning_board_state, diag_row + i, diag_col + i);
+                    }
+
+                    boards[num_boards] = winning_board_state;
+                    ++num_boards;
+
+                    ++diag_row;
+                    ++diag_col;
+                }
+            }
+
+            // Diagonal (top-left to bottom-right)
+            {
+                int8_t diag_row = table_row;
+                uint8_t diag_col = table_col;
+                while (diag_row + 1 < 6 && diag_col > 0)
+                {
+                    ++diag_row;
+                    --diag_col;
+                }
+
+                while ((diag_row + 1) - 4 >= 0 && diag_col + 4 <= 7)
+                {
+                    uint64_t winning_board_state = 0;
+                    for (uint8_t i = 0; i < 4; ++i)
+                    {
+                        winning_board_state = bit_set(winning_board_state, diag_row - i, diag_col + i);
+                    }
+
+                    boards[num_boards] = winning_board_state;
+                    ++num_boards;
+
+                    --diag_row;
+                    ++diag_col;
+                }
+            }
+
+            WinningBoardCollection board_collection;
+            board_collection.num_boards = num_boards;
+            board_collection.boards = (uint64_t*)malloc(num_boards * sizeof(uint64_t));
+            memcpy(board_collection.boards, boards, num_boards * sizeof(uint64_t));
+
+            check_for_win_processed_winning_boards_table[table_row][table_col] = board_collection;
+        }
+    }
 }
 
 int8_t make_move(uint8_t player, uint8_t column, BoardState state)
@@ -128,11 +235,6 @@ int8_t make_move(uint8_t player, uint8_t column, BoardState state)
     assert(column >= 0 && column < 7);
 
     return make_move_column(player, &state[column]);
-}
-
-inline uint64_t bit_set(uint64_t num, uint8_t row, uint8_t col)
-{
-    return num | ((uint64_t)1 << (col * 8 + (row)));
 }
 
 bool check_for_win(BoardState state, uint8_t last_move_player, uint8_t last_move_row, uint8_t last_move_col)
@@ -149,89 +251,13 @@ bool check_for_win(BoardState state, uint8_t last_move_player, uint8_t last_move
 
     uint64_t* processed_board_state_binary = (uint64_t*)&processed_board_state;
 
-    // Vertical
-    for (uint8_t row_start = 0; row_start < 3; ++row_start)
+    WinningBoardCollection winning_boards = check_for_win_processed_winning_boards_table[last_move_row][last_move_col];
+    for (uint8_t i = 0; i < winning_boards.num_boards; ++i)
     {
-        uint64_t winning_board_state = 0;
-        for (uint8_t row = 0; row < 4; ++row)
-        {
-            winning_board_state = bit_set(winning_board_state, row_start + row, last_move_col);
-        }
-
+        uint64_t winning_board_state = winning_boards.boards[i];
         if ((winning_board_state & *processed_board_state_binary) == winning_board_state)
         {
             return true;
-        }
-    }
-
-    // Horizontal
-    for (uint8_t col_start = 0; col_start < 4; ++col_start)
-    {
-        uint64_t winning_board_state = 0;
-        for (uint8_t col = 0; col < 4; ++col)
-        {
-            winning_board_state = bit_set(winning_board_state, last_move_row, col_start + col);
-        }
-
-        if ((winning_board_state & *processed_board_state_binary) == winning_board_state)
-        {
-            return true;
-        }
-    }
-
-    // Diagonal (bottom-left to top-right)
-    {
-        uint8_t diag_row = last_move_row;
-        uint8_t diag_col = last_move_col;
-        while (diag_row > 0 && diag_col > 0)
-        {
-            --diag_row;
-            --diag_col;
-        }
-
-        while (diag_row + 4 <= 6 && diag_col + 4 <= 7)
-        {
-            uint64_t winning_board_state = 0;
-            for (uint8_t i = 0; i < 4; ++i)
-            {
-                winning_board_state = bit_set(winning_board_state, diag_row + i, diag_col + i);
-            }
-
-            if ((winning_board_state & *processed_board_state_binary) == winning_board_state)
-            {
-                return true;
-            }
-
-            ++diag_row;
-            ++diag_col;
-        }
-    }
-
-    // Diagonal (top-left to bottom-right)
-    {
-        int8_t diag_row = last_move_row;
-        uint8_t diag_col = last_move_col;
-        while (diag_row + 1 < 6 && diag_col > 0)
-        {
-            ++diag_row;
-            --diag_col;
-        }
-
-        while ((diag_row + 1) - 4 >= 0 && diag_col + 4 <= 7)
-        {
-            uint64_t winning_board_state = 0;
-            for (uint8_t i = 0; i < 4; ++i)
-            {
-                winning_board_state = bit_set(winning_board_state, diag_row - i, diag_col + i);
-            }
-
-            if ((winning_board_state & *processed_board_state_binary) == winning_board_state)
-            {
-                return true;
-            }
-
-            --diag_row;
-            ++diag_col;
         }
     }
 
