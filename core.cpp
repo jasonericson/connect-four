@@ -8,6 +8,7 @@
 
 MakeMoveResult make_move_table_partial[2][0b01000000];
 MakeMoveResult make_move_table_full[2][0b01111111];
+uint8_t check_for_win_processed_column_table[2][0b01111111];
 
 void init_board(BoardState state)
 {
@@ -67,7 +68,7 @@ void init_core()
 {
     SDL_Init(0);
 
-    // Building partial lookup table (skips full columns)
+    // Building make_move partial lookup table (skips full columns)
     for (uint8_t player = 0; player < 2; ++player)
     {
         make_move_table_partial[player][0] = MakeMoveResult { -1, 0 };
@@ -80,7 +81,7 @@ void init_core()
         }
     }
 
-    // Building full lookup table (includes full columns)
+    // Building make_move full lookup table (includes full columns)
     for (uint8_t player = 0; player < 2; ++player)
     {
         make_move_table_full[player][0] = MakeMoveResult { -1, 0 };
@@ -90,6 +91,34 @@ void init_core()
             result.column_state = column_state;
             result.row = make_move_column(player, &result.column_state);
             make_move_table_full[player][column_state] = result;
+        }
+    }
+
+    // Building check_for_win processed column lookup table
+    for (uint8_t player = 0; player < 2; ++player)
+    {
+        check_for_win_processed_column_table[player][0] = 0;
+        for (uint8_t in_column = 1; in_column > 0; ++in_column)
+        {
+            // Remove top-of-stack bit
+            uint8_t mask = in_column;           // 0011 0000 (example)
+            mask |= mask >> 1;                  // 0011 1000
+            mask |= mask >> 2;                  // 0011 1110
+            mask |= mask >> 4;                  // 0011 1111
+            mask >>= 1;                         // 0001 1111
+
+            uint8_t out_column = in_column;
+            if (player == 0)
+            {
+                out_column = ~out_column;       // 1100 1111
+                out_column &= mask;             // 0000 1111
+            }
+            else
+            {
+                out_column &= mask;             // 0001 0000
+            }
+
+            check_for_win_processed_column_table[player][in_column] = out_column;
         }
     }
 }
@@ -114,25 +143,8 @@ bool check_for_win(BoardState state, uint8_t last_move_player, uint8_t last_move
     uint8_t processed_board_state[8] = { 0 };
     for (uint8_t col = 0; col < 7; ++col)
     {
-        // Remove top-of-stack bit
-        uint8_t mask = state[col];          // 0011 0000 (example)
-        mask |= mask >> 1;                  // 0011 1000
-        mask |= mask >> 2;                  // 0011 1110
-        mask |= mask >> 4;                  // 0011 1111
-        mask >>= 1;                         // 0001 1111
-
-        uint8_t processed_col = state[col];
-        if (last_move_player == 0)
-        {
-            processed_col = ~processed_col; // 1100 1111
-            processed_col &= mask;          // 0000 1111
-        }
-        else
-        {
-            processed_col &= mask;          // 0001 0000
-        }
-
-        processed_board_state[col] = processed_col;
+        assert(state[col] < 0b10000000);
+        processed_board_state[col] = check_for_win_processed_column_table[last_move_player][state[col]];
     }
 
     uint64_t* processed_board_state_binary = (uint64_t*)&processed_board_state;
