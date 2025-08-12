@@ -15,8 +15,11 @@ struct MakeMoveResult
     uint8_t column_state;
 };
 
-extern MakeMoveResult make_move_table_partial[2][0b01000000];
-extern MakeMoveResult make_move_table_full[2][0b01111111];
+const uint8_t MAKE_MOVE_TABLE_PARTIAL_SIZE = 0b01000000;
+const uint8_t MAKE_MOVE_TABLE_FULL_SIZE = 0b01111111;
+
+extern MakeMoveResult make_move_table_partial[2][MAKE_MOVE_TABLE_PARTIAL_SIZE];
+extern MakeMoveResult make_move_table_full[2][MAKE_MOVE_TABLE_FULL_SIZE];
 
 inline int8_t make_move_lookup_partial(uint8_t player, uint8_t column, BoardState state)
 {

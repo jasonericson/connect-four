@@ -12,9 +12,11 @@ struct WinningBoardCollection
     uint64_t* boards;
 };
 
-MakeMoveResult make_move_table_partial[2][0b01000000];
-MakeMoveResult make_move_table_full[2][0b01111111];
-uint8_t check_for_win_processed_column_table[2][0b01111111];
+MakeMoveResult make_move_table_partial[2][MAKE_MOVE_TABLE_PARTIAL_SIZE];
+MakeMoveResult make_move_table_full[2][MAKE_MOVE_TABLE_FULL_SIZE];
+
+const uint8_t CHECK_FOR_WIN_PROCESSED_COLUMN_TABLE_SIZE = 0b01111111;
+uint8_t check_for_win_processed_column_table[2][CHECK_FOR_WIN_PROCESSED_COLUMN_TABLE_SIZE];
 WinningBoardCollection check_for_win_processed_winning_boards_table[6][7];
 
 void init_board(BoardState state)
@@ -97,7 +99,7 @@ void init_core()
     for (uint8_t player = 0; player < 2; ++player)
     {
         make_move_table_full[player][0] = MakeMoveResult { -1, 0 };
-        for (uint8_t column_state = 1; column_state > 0; ++column_state)
+        for (uint8_t column_state = 1; column_state < MAKE_MOVE_TABLE_FULL_SIZE; ++column_state)
         {
             MakeMoveResult result;
             result.column_state = column_state;
@@ -110,7 +112,7 @@ void init_core()
     for (uint8_t player = 0; player < 2; ++player)
     {
         check_for_win_processed_column_table[player][0] = 0;
-        for (uint8_t in_column = 1; in_column > 0; ++in_column)
+        for (uint8_t in_column = 1; in_column < CHECK_FOR_WIN_PROCESSED_COLUMN_TABLE_SIZE; ++in_column)
         {
             // Remove top-of-stack bit
             uint8_t mask = in_column;           // 0011 0000 (example)
@@ -249,7 +251,7 @@ bool check_for_win(BoardState state, uint8_t last_move_player, uint8_t last_move
         processed_board_state[col] = check_for_win_processed_column_table[last_move_player][state[col]];
     }
 
-    uint64_t* processed_board_state_binary = (uint64_t*)&processed_board_state;
+    uint64_t* processed_board_state_binary = (uint64_t*)processed_board_state;
 
     WinningBoardCollection winning_boards = check_for_win_processed_winning_boards_table[last_move_row][last_move_col];
     for (uint8_t i = 0; i < winning_boards.num_boards; ++i)
@@ -282,7 +284,7 @@ int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, Bo
         uint64_t time_elapsed = time_current - get_move_score_start_time;
         double_t time_to_complete = (time_elapsed / 1000.0) * (100.0 / percent_completed);
 
-        printf("Total moves: %llu (%f%%), wins found: %llu, dead-ends found: %llu, depth: %d\n", total_moves_evaluated, percent_completed, wins_found, dead_ends_found, min_depth);
+        printf("Total moves: %lu (%f%%), wins found: %lu, dead-ends found: %lu, depth: %d\n", total_moves_evaluated, percent_completed, wins_found, dead_ends_found, min_depth);
 
         char friendly_time_string[256];
         sprint_friendly_time(time_to_complete, friendly_time_string);

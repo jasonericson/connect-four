@@ -1,5 +1,6 @@
 #include "helpers.h"
 
+#include <stdint.h>
 #include <stdio.h>
 
 void sprint_friendly_time(double_t total_seconds, char buffer[256])

@@ -67,7 +67,7 @@ void run_profile(const char* label, int8_t (*make_move_func)(uint8_t, uint8_t, B
     double_t make_move_total_time_ns = (double_t)(make_move_end_time - make_move_start_time) / ((double_t)SDL_GetPerformanceFrequency() / 1000000000);
     double_t make_move_avg_time_ns = make_move_total_time_ns / total_num_moves;
     double_t make_move_num_per_us = 1000 / make_move_avg_time_ns;
-    printf("%s(): %f times / μs. (total time to make %llu moves: %f ms\n", label, make_move_num_per_us, total_num_moves, make_move_total_time_ns / 1000000);
+    printf("%s(): %f times / μs. (total time to make %lu moves: %f ms\n", label, make_move_num_per_us, total_num_moves, make_move_total_time_ns / 1000000);
 
     double_t make_move_time_to_finish_sec = ((double_t)(make_move_end_time - make_move_start_time) / SDL_GetPerformanceFrequency()) * (4531985219092.0 / total_num_moves);
     char make_move_time_to_finish_str[256];
@@ -85,7 +85,7 @@ void run_profile(const char* label, int8_t (*make_move_func)(uint8_t, uint8_t, B
     double_t check_for_win_total_time_ns = (double_t)(check_for_win_end_time - check_for_win_start_time) / ((double_t)SDL_GetPerformanceFrequency() / 1000000000);
     double_t check_for_win_avg_time_ns = check_for_win_total_time_ns / NUM_GAMES;
     double_t check_for_win_num_per_us = 1000 / check_for_win_avg_time_ns;
-    printf("check_for_win(): %f times / μs. (total time to check %llu games: %f ms\n", check_for_win_num_per_us, NUM_GAMES, check_for_win_total_time_ns / 1000000);
+    printf("check_for_win(): %f times / μs. (total time to check %lu games: %f ms\n", check_for_win_num_per_us, NUM_GAMES, check_for_win_total_time_ns / 1000000);
 
     double_t check_for_win_time_to_finish_sec = ((double_t)(check_for_win_end_time - check_for_win_start_time) / SDL_GetPerformanceFrequency()) * (4531985219092.0 / NUM_GAMES);
     char check_for_win_time_to_finish_str[256];
