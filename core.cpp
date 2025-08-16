@@ -273,63 +273,18 @@ uint8_t min_depth;
 uint64_t time_of_last_print;
 uint64_t get_move_score_start_time;
 
-int32_t get_move_score(uint8_t player, uint8_t player_this_turn, uint8_t col, BoardState state, bool *move_possible, uint8_t depth)
+struct MoveEvalNode
 {
-    uint64_t time_current = SDL_GetTicks();
-    if (time_current - time_of_last_print >= 1000)
-    {
-        time_of_last_print = time_current;
+    uint8_t curr_move_column = 0;
+    BoardState state;
+    int64_t score = 0;
+};
 
-        double_t percent_completed = 100.0 * total_moves_evaluated / 4531985219092;
-        uint64_t time_elapsed = time_current - get_move_score_start_time;
-        double_t time_to_complete = (time_elapsed / 1000.0) * (100.0 / percent_completed);
-
-        printf("Total moves: %lu (%f%%), wins found: %lu, dead-ends found: %lu, depth: %d\n", total_moves_evaluated, percent_completed, wins_found, dead_ends_found, min_depth);
-
-        char friendly_time_string[256];
-        sprint_friendly_time(time_to_complete, friendly_time_string);
-        printf("- Time to complete: %s\n", friendly_time_string);
-    }
-
-    BoardState state_new;
-    memcpy(state_new, state, sizeof(BoardState));
-    int8_t row = make_move_lookup_full(player_this_turn, col, state_new);
-    *move_possible = row >= 0;
-    if (*move_possible == false)
-    {
-        ++dead_ends_found;
-
-        return 0;
-    }
-
-    ++total_moves_evaluated;
-
-    bool result = check_for_win(state_new, player_this_turn, row, col);
-    if (result)
-    {
-        ++wins_found;
-
-        return 0;
-    }
-
-    int32_t total_score = 0;
-    player_this_turn = 1 - player_this_turn;
-    for (uint8_t col = 0; col < 7; ++col)
-    {
-        bool temp_move_possible;
-        total_score += get_move_score(player, player_this_turn, col, state_new, &temp_move_possible, depth + 1);
-    }
-
-    min_depth = depth < min_depth ? depth : min_depth;
-
-    return total_score;
-}
-
-// @TODO: lol this function still only gets the move score for one move, gotta get back to that
-int32_t get_move_score_full()
+void get_move_scores(int64_t final_scores[7])
 {
-    BoardState state = { 1, 1, 1, 1, 1, 1, 1 };
-    bool move_possible;
+    MoveEvalNode nodes[44];
+    init_board(nodes[0].state);
+
     get_move_score_start_time = SDL_GetTicks();
     time_of_last_print = get_move_score_start_time;
     total_moves_evaluated = 0;
@@ -337,7 +292,102 @@ int32_t get_move_score_full()
     dead_ends_found = 0;
     min_depth = 50;
 
-    return get_move_score(0, 0, 0, state, &move_possible, 1);
+    int8_t depth = 0;
+    uint8_t player = 0;
+    uint8_t player_this_turn = 0;
+    while (depth >= 0)
+    {
+        // Print status update every 100 ms.
+        uint64_t time_current = SDL_GetTicks();
+        if (time_current - time_of_last_print >= 1000)
+        {
+            print_board(nodes[depth].state);
+
+            time_of_last_print = time_current;
+
+            double_t percent_completed = 100.0 * total_moves_evaluated / 4531985219092;
+            uint64_t time_elapsed = time_current - get_move_score_start_time;
+            double_t time_to_complete = (time_elapsed / 1000.0) * (100.0 / percent_completed);
+
+            printf("Total moves: %lu (%f%%), wins found: %lu, dead-ends found: %lu, depth: %d\n", total_moves_evaluated, percent_completed, wins_found, dead_ends_found, min_depth);
+
+            char friendly_time_string[256];
+            sprint_friendly_time(time_to_complete, friendly_time_string);
+            printf("- Time to complete: %s\n", friendly_time_string);
+        }
+
+        // Make move from current node to next node, based on curr_move_column.
+        memcpy(nodes[depth + 1].state, nodes[depth].state, sizeof(BoardState));
+        int8_t row = make_move_lookup_full(player_this_turn, nodes[depth].curr_move_column, nodes[depth + 1].state);
+
+        bool move_to_next_column = false;
+
+        if (row < 0)
+        {
+            // Move not possible.
+            ++dead_ends_found;
+
+            move_to_next_column = true;
+        }
+        else
+        {
+            ++total_moves_evaluated;
+            if (check_for_win(nodes[depth + 1].state, player_this_turn, row, nodes[depth].curr_move_column))
+            {
+                ++wins_found;
+            
+                // Dumb little score function just to get the functionality right.
+                nodes[depth].score += player_this_turn == player ? 1 : -1;
+
+                move_to_next_column = true;
+            }
+            else
+            {
+                // If this is not a win or dead end, we'll move down to the next node.
+                ++depth;
+                nodes[depth].curr_move_column = 0;
+                nodes[depth].score = 0;
+                player_this_turn = 1 - player_this_turn;
+            }
+        }
+
+        // Move to next column, and backtrack if needed.
+        if (move_to_next_column)
+        {
+            // Next column.
+            ++nodes[depth].curr_move_column;
+
+            // If we've checked every column...
+            while (nodes[depth].curr_move_column >= 7)
+            {
+                min_depth = depth < min_depth ? depth : min_depth;
+
+                // Go back up a node (and exit out if we're going past the top).
+                --depth;
+                if (depth < 0)
+                    break;
+
+                // If we're at the top...
+                if (depth == 0)
+                {
+                    // Record this move's score.
+                    final_scores[nodes[depth].curr_move_column] = nodes[depth + 1].score;
+                }
+                // Otherwise...
+                else
+                {
+                    // Add score from child node.
+                    nodes[depth].score += nodes[depth + 1].score;
+                }
+
+                // Reset and go to next column.
+                nodes[depth + 1].curr_move_column = 0;
+                nodes[depth + 1].score = 0;
+                ++nodes[depth].curr_move_column;
+                player_this_turn = 1 - player_this_turn;
+            }
+        }
+    }
 }
 
 void sprint_board(BoardState state, char* buffer)
